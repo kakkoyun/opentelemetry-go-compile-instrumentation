@@ -6,4 +6,13 @@ server_hook:
   func: ServeHTTP
   recv: serverHandler
   before: BeforeServeHTTP
-  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg/instrumentation/nethttp"
+  after: AfterServeHTTP
+  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/nethttp"
+
+client_hook:
+  target: net/http
+  func: Do
+  recv: Client
+  before: BeforeClientDo
+  after: AfterClientDo
+  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/nethttp"

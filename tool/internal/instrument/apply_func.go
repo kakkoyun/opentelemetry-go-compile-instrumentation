@@ -98,14 +98,27 @@ func createTJumpIf(t *rule.InstFuncRule, funcDecl *dst.FuncDecl,
 	funcSuffix := util.CRC32(t.String())
 	beforeCall := ast.CallTo(makeName(t, funcDecl, true), args)
 	afterCall := ast.CallTo(makeName(t, funcDecl, false), func() []dst.Expr {
+		// After trampoline needs: HookContext + all target params + return values
 		// NB. DST framework disallows duplicated node in the
-		// AST tree, we need to replicate the return values
-		// as they are already used in return statement above
-		clone := make([]dst.Expr, len(retVals)+1)
-		clone[0] = ast.Ident(trampolineHookContextName + funcSuffix)
-		for i := 1; i < len(clone); i++ {
-			clone[i] = ast.AddressOf(retVals[i-1])
+		// AST tree, we need to replicate the arguments and return values
+		// as they are already used elsewhere
+		clone := make([]dst.Expr, 0, 1+len(args)+len(retVals))
+
+		// First: HookContext from before hook
+		clone = append(clone, ast.Ident(trampolineHookContextName+funcSuffix))
+
+		// Second: All target function arguments (receiver + params)
+		for _, arg := range args {
+			clonedArg, ok := dst.Clone(arg).(dst.Expr)
+			util.Assert(ok, "clonedArg is not an Expr")
+			clone = append(clone, clonedArg)
 		}
+
+		// Third: Return values
+		for _, retVal := range retVals {
+			clone = append(clone, ast.AddressOf(retVal))
+		}
+
 		return clone
 	}())
 	tjumpInit := ast.DefineStmts(

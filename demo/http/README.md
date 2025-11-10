@@ -223,3 +223,183 @@ The client:
 - Tracks success/failure counts
 - Logs detailed error information with structured fields
 - Measures and logs request duration for performance analysis
+
+## OpenTelemetry Instrumentation
+
+This HTTP demo showcases **compile-time instrumentation** using OpenTelemetry. Unlike traditional library-based instrumentation, this approach automatically instruments your code at compile time without requiring manual code changes.
+
+### How It Works
+
+The `otel` tool (from this repository) intercepts the compilation process and automatically injects instrumentation code into both the HTTP server and client:
+
+1. **Server Instrumentation**: Hooks into `net/http.ServeHTTP` to create server spans
+2. **Client Instrumentation**: Hooks into `http.Client.Do` to create client spans
+3. **Context Propagation**: Automatically propagates W3C Trace Context between client and server
+
+### Building with Instrumentation
+
+To build the applications with instrumentation:
+
+```bash
+# Build the otel tool first
+cd ../..  # Go to repository root
+make build
+
+# Build the server with instrumentation
+cd demo/http/server
+../../../otel go build -o server .
+
+# Build the client with instrumentation
+cd ../client
+../../../otel go build -o client .
+```
+
+### Telemetry Configuration
+
+Both server and client support OpenTelemetry configuration via environment variables:
+
+```bash
+# OTLP Exporter Configuration
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+export OTEL_EXPORTER_OTLP_PROTOCOL="grpc"
+
+# Service Configuration
+export OTEL_SERVICE_NAME="my-http-service"
+export OTEL_RESOURCE_ATTRIBUTES="service.namespace=production,service.version=1.0.0"
+
+# Logging Level
+export OTEL_LOG_LEVEL="info"  # debug, info, warn, error
+```
+
+### Observability Stack with Docker Compose
+
+The easiest way to see the instrumentation in action is using the full observability stack:
+
+```bash
+cd ../infrastructure/docker-compose
+
+# Start the full stack (Jaeger, Prometheus, Grafana, OTel Collector)
+docker-compose up -d
+
+# Start the HTTP server and client
+docker-compose up http-server http-client
+
+# Optional: Run k6 load tests to generate more telemetry
+docker-compose --profile load-testing up k6-http
+```
+
+Access the observability tools:
+
+- **Jaeger UI**: <http://localhost:16686> - View distributed traces
+- **Grafana**: <http://localhost:3000> - View dashboards and metrics
+- **Prometheus**: <http://localhost:9090> - Query metrics directly
+
+### Telemetry Data Collected
+
+#### Traces (Spans)
+
+**Server Spans:**
+
+- Span name: `HTTP {method}` or `HTTP {method} {route}`
+- Span kind: `SERVER`
+- Attributes:
+  - `http.request.method` - HTTP method (GET, POST, etc.)
+  - `http.response.status_code` - Response status code
+  - `http.route` - Request path
+  - `network.protocol.version` - HTTP version (1.1, 2, 3)
+  - `network.peer.address` - Client IP address
+  - `user_agent.original` - User agent string
+
+**Client Spans:**
+
+- Span name: `HTTP {method}`
+- Span kind: `CLIENT`
+- Attributes:
+  - `http.request.method` - HTTP method
+  - `http.response.status_code` - Response status code
+  - `url.full` - Complete URL
+  - `url.scheme` - URL scheme (http, https)
+  - `network.protocol.version` - HTTP version
+  - `server.address` - Server hostname
+
+#### Metrics
+
+**Server Metrics:**
+
+- `http.server.request.duration` - Histogram of request durations
+- `http.server.request.body.size` - Request body sizes
+- `http.server.response.body.size` - Response body sizes
+
+**Client Metrics:**
+
+- `http.client.request.duration` - Histogram of request durations
+- `http.client.request.body.size` - Request body sizes
+- `http.client.response.body.size` - Response body sizes
+
+### Example: Viewing Traces
+
+1. Start the observability stack and applications:
+
+   ```bash
+   docker-compose up -d
+   docker-compose up http-server http-client
+   ```
+
+2. Open Jaeger UI: <http://localhost:16686>
+
+3. Select Service: `http-client` or `http-server`
+
+4. Click "Find Traces"
+
+5. You'll see traces showing the complete request flow:
+   - Client span (CLIENT) → Server span (SERVER)
+   - Both spans share the same trace ID
+   - Server span is a child of the client span
+   - All HTTP attributes are visible
+
+### Example: Querying Metrics
+
+1. Open Prometheus UI: <http://localhost:9090>
+
+2. Try these queries:
+
+   ```promql
+   # Request rate
+   rate(http_server_request_duration_count[1m])
+
+   # 95th percentile latency
+   histogram_quantile(0.95, rate(http_server_request_duration_bucket[5m]))
+
+   # Error rate
+   rate(http_server_request_duration_count{http_status_code=~"5.."}[1m])
+   ```
+
+3. View in Grafana for better visualization: <http://localhost:3000>
+
+### Troubleshooting
+
+**No telemetry data appearing:**
+
+- Check that the OTLP endpoint is configured correctly
+- Verify the OTel Collector is running: `docker-compose ps otel-collector`
+- Check application logs for OpenTelemetry initialization messages
+- Set `OTEL_LOG_LEVEL=debug` for verbose logging
+
+**Traces not connected:**
+
+- Ensure both client and server are using the same OTel Collector endpoint
+- Verify W3C trace context headers are being propagated
+- Check for clock skew between services
+
+**High cardinality warnings:**
+
+- The `/greet` endpoint uses dynamic names in URLs which is acceptable for this demo
+- In production, use route patterns instead of full paths in span names
+
+### Technical Details
+
+For more information about the instrumentation implementation, see:
+
+- [Instrumentation Package README](../../pkg/instrumentation/nethttp/README.md)
+- [Architecture Documentation](../../docs/implementation.md)
+- [Hook Configuration](../../tool/data/nethttp.yaml)

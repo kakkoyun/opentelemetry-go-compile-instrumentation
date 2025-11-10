@@ -56,6 +56,21 @@ func main() {
 	}
 }
 
+func parseLogLevel(levelStr string) slog.Level {
+	switch levelStr {
+	case "debug", "DEBUG":
+		return slog.LevelDebug
+	case "info", "INFO":
+		return slog.LevelInfo
+	case "warn", "WARN", "warning", "WARNING":
+		return slog.LevelWarn
+	case "error", "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 func initLogger(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	buildTempDir := cmd.String("work-dir")
 	err := os.MkdirAll(buildTempDir, 0o755)
@@ -69,6 +84,9 @@ func initLogger(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 		return ctx, ex.Wrapf(err, "failed to open log file %q", buildTempDir)
 	}
 
+	// Parse log level from environment variable, default to Info
+	logLevel := parseLogLevel(os.Getenv("OTEL_LOG_LEVEL"))
+
 	// Create a custom handler with shorter time format
 	// Remove time and level keys as they make no sense for debugging
 	handler := slog.NewTextHandler(writer, &slog.HandlerOptions{
@@ -78,7 +96,7 @@ func initLogger(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 			}
 			return a
 		},
-		Level: slog.LevelInfo,
+		Level: logLevel,
 	})
 	logger := slog.New(handler)
 	ctx = util.ContextWithLogger(ctx, logger)

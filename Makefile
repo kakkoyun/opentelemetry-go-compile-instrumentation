@@ -10,6 +10,7 @@ SHELL := /bin/bash
         ratchet/update ratchet/check golangci-lint embedmd checkmake go-license help docs check-embed \
         test-unit/coverage test-integration/coverage test-e2e/coverage
 
+
 # Constant variables
 BINARY_NAME := otel
 TOOL_DIR := tool/cmd
@@ -63,8 +64,14 @@ package: ## Package the instrumentation code into binary
 		echo "Error: pkg directory does not exist"; \
 		exit 1; \
 	fi
-	cp -r pkg $(INST_PKG_TMP)
-	(cd $(INST_PKG_TMP) && go mod tidy)
+	if [ ! -d instrumentation ]; then \
+		echo "Error: instrumentation directory does not exist"; \
+		exit 1; \
+	fi
+	mkdir -p $(INST_PKG_TMP)
+	cp -r pkg $(INST_PKG_TMP)/
+	cp -r instrumentation $(INST_PKG_TMP)/
+	(cd $(INST_PKG_TMP)/pkg && go mod tidy)
 	tar -czf $(INST_PKG_GZIP) --exclude='*.log' $(INST_PKG_TMP)
 	mkdir -p tool/data/
 	mv $(INST_PKG_GZIP) tool/data/

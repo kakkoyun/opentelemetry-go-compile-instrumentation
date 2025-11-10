@@ -117,6 +117,8 @@ func BuildWithToolexec(ctx context.Context, args []string) error {
 	pwd := util.GetOtelWorkDir()
 	util.Assert(pwd != "", "invalid working directory")
 	env = append(env, fmt.Sprintf("%s=%s", util.EnvOtelWorkDir, pwd))
+	// Disable workspace mode to avoid conflicts with replace directives
+	env = append(env, "GOWORK=off")
 
 	return util.RunCmdWithEnv(ctx, env, newArgs...)
 }

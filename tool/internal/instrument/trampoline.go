@@ -249,16 +249,24 @@ func getHookParamTraits(t *rule.InstFuncRule, before bool) ([]ParamTrait, error)
 }
 
 func (ip *InstrumentPhase) callBeforeHook(t *rule.InstFuncRule, traits []ParamTrait) error {
-	// The actual parameter list of hook function should be the same as the
-	// target function
-	if len(traits) != (len(ip.beforeHookFunc.Type.Params.List) + 1) {
-		return ex.Newf("hook func signature mismatch, expected %d, got %d",
-			len(ip.beforeHookFunc.Type.Params.List)+1, len(traits))
+	// Hook functions can declare fewer parameters than target provides
+	// (they use GetParam() to access the rest dynamically)
+	// Validate: hook shouldn't declare more params than target function provides
+	// traits includes HookContext, trampoline doesn't, so: len(traits) <= len(trampolineParams) + 1
+	if len(traits) > (len(ip.beforeHookFunc.Type.Params.List) + 1) {
+		return ex.Newf(
+			"hook declares %d params but target function only has %d params available (including HookContext)",
+			len(traits),
+			len(ip.beforeHookFunc.Type.Params.List)+1,
+		)
 	}
 	// Hook: 	   func beforeFoo(hookContext* HookContext, p*[]int)
-	// Trampoline: func OtelBeforeTrampoline_foo(p *[]int)
+	// Trampoline: func OtelBeforeTrampoline_foo(p *[]int, p2 *[]string, ...)
+	// Hook only declares params it needs, accesses others via GetParam()
 	args := []dst.Expr{ast.Ident(trampolineHookContextName)}
-	for idx, field := range ip.beforeHookFunc.Type.Params.List {
+	// traits-1 because traits[0] is HookContext which we already added
+	for idx := range len(traits) - 1 {
+		field := ip.beforeHookFunc.Type.Params.List[idx]
 		trait := traits[idx+1 /*HookContext*/]
 		for _, name := range field.Names { // syntax of n1,n2 type
 			if trait.IsVariadic {
@@ -280,20 +288,24 @@ func (ip *InstrumentPhase) callBeforeHook(t *rule.InstFuncRule, traits []ParamTr
 }
 
 func (ip *InstrumentPhase) callAfterHook(t *rule.InstFuncRule, traits []ParamTrait) error {
-	// The actual parameter list of hook function should be the same as the
-	// target function
-	if len(traits) != len(ip.afterHookFunc.Type.Params.List) {
-		return ex.Newf("hook func signature mismatch, expected %d, got %d",
-			len(ip.afterHookFunc.Type.Params.List), len(traits))
+	// Hook functions can declare fewer parameters than trampoline provides
+	// (they use GetParam() to access the rest dynamically)
+	// Validate: hook shouldn't declare more params than trampoline has
+	if len(traits) > len(ip.afterHookFunc.Type.Params.List) {
+		return ex.Newf("hook declares %d params but trampoline only has %d params available",
+			len(traits), len(ip.afterHookFunc.Type.Params.List))
 	}
-	// Hook: 	   func afterFoo(ctx* HookContext, p*[]int)
-	// Trampoline: func OtelAfterTrampoline_foo(ctx* HookContext, p *[]int)
+	// Hook: 	   func afterFoo(ctx* HookContext, r1 float32, r2 error)
+	// Trampoline: func OtelAfterTrampoline_foo(ctx* HookContext, p1 string, p2 int, r1 float32, r2 error)
+	// Hook declares only params it needs, accesses others via GetParam()
 	var args []dst.Expr
-	for idx, field := range ip.afterHookFunc.Type.Params.List {
+	for idx := range traits {
 		if idx == 0 {
 			args = append(args, ast.Ident(trampolineHookContextName))
 			continue
 		}
+		// Get the trampoline parameter that corresponds to this hook parameter
+		field := ip.afterHookFunc.Type.Params.List[idx]
 		trait := traits[idx]
 		for _, name := range field.Names { // syntax of n1,n2 type
 			if trait.IsVariadic {
@@ -316,12 +328,23 @@ func (ip *InstrumentPhase) callAfterHook(t *rule.InstFuncRule, traits []ParamTra
 	return nil
 }
 
-func rectifyAnyType(paramList *dst.FieldList, traits []ParamTrait) error {
-	if len(paramList.List) != len(traits) {
-		return ex.New("hook func signature can not match with target function")
+func (ip *InstrumentPhase) rectifyAnyType(paramList *dst.FieldList, traits []ParamTrait) error {
+	// Hook functions can have fewer parameters than target
+	// (they use GetParam() to access the rest dynamically)
+
+	// Debug logging to troubleshoot parameter count mismatches
+	ip.Debug("rectifyAnyType called",
+		"paramList_count", len(paramList.List),
+		"traits_count", len(traits))
+
+	if len(paramList.List) < len(traits) {
+		return ex.Newf("hook func has more parameters (%d) than target function (%d)",
+			len(traits), len(paramList.List))
 	}
-	for i, field := range paramList.List {
-		trait := traits[i]
+
+	// Only rectify the parameters that the hook explicitly declares
+	for i, trait := range traits {
+		field := paramList.List[i]
 		if trait.IsInterfaceAny {
 			// Rectify type to "interface{}"
 			field.Type = ast.InterfaceType()
@@ -333,13 +356,32 @@ func rectifyAnyType(paramList *dst.FieldList, traits []ParamTrait) error {
 func (ip *InstrumentPhase) addHookFuncVar(t *rule.InstFuncRule,
 	traits []ParamTrait, before bool,
 ) error {
-	paramTypes := ip.buildTrampolineType(before)
-	addHookContext(paramTypes)
-	// Hook functions may uses interface{} as parameter type, as some types of
-	// raw function is not exposed
-	err := rectifyAnyType(paramTypes, traits)
+	// Build trampoline parameter types (includes ALL target function params)
+	trampolineParams := ip.buildTrampolineType(before)
+	ip.Debug("buildTrampolineType result",
+		"before", before,
+		"field_count", len(trampolineParams.List))
+
+	addHookContext(trampolineParams)
+	ip.Debug("after addHookContext",
+		"field_count", len(trampolineParams.List))
+
+	// Rectify types in trampoline params based on hook traits
+	// Hook functions may use interface{} as parameter type, as some types of
+	// target function are not exposed
+	err := ip.rectifyAnyType(trampolineParams, traits)
 	if err != nil {
 		return err
+	}
+
+	// Build hook function params (only what the hook declares, not all trampoline params)
+	// The linkname declaration must match the actual hook implementation signature
+	// Hook declares len(traits) params, so take first len(traits) from trampolineParams
+	hookParams := &dst.FieldList{List: make([]*dst.Field, len(traits))}
+	for i := range traits {
+		field, ok := dst.Clone(trampolineParams.List[i]).(*dst.Field)
+		util.Assert(ok, "field is not a Field")
+		hookParams.List[i] = field
 	}
 
 	// Generate var decl and append it to the target file, note that many target
@@ -351,10 +393,12 @@ func (ip *InstrumentPhase) addHookFuncVar(t *rule.InstFuncRule,
 		Name: ast.Ident(fnName),
 		Type: &dst.FuncType{
 			Func:   false,
-			Params: paramTypes,
+			Params: hookParams, // Use hook params, not trampoline params
 		},
 		Decs: dst.FuncDeclDecorations{
 			NodeDecs: ast.LineComments(
+				// Link to where hook is defined (path package)
+				// Hooks that inject themselves in target package use //go:linkname to export themselves
 				fmt.Sprintf("//go:linkname %s %s.%s", fnName, t.Path, fnName)),
 		},
 	}
@@ -413,8 +457,22 @@ func addHookContext(list *dst.FieldList) {
 
 func (ip *InstrumentPhase) buildTrampolineType(before bool) *dst.FieldList {
 	paramList := &dst.FieldList{List: []*dst.Field{}}
+
+	hasReceiver := ast.HasReceiver(ip.targetFunc)
+	paramCount := 0
+	if ip.targetFunc.Type.Params != nil {
+		paramCount = len(ip.targetFunc.Type.Params.List)
+	}
+
+	ip.Debug("buildTrampolineType start",
+		"before", before,
+		"target_func", ip.targetFunc.Name.Name,
+		"has_receiver", hasReceiver,
+		"param_field_count", paramCount)
+
 	if before {
-		if ast.HasReceiver(ip.targetFunc) {
+		// Before hook: include receiver + parameters
+		if hasReceiver {
 			recvField, ok := dst.Clone(ip.targetFunc.Recv.List[0]).(*dst.Field)
 			util.Assert(ok, "recvField is not a Field")
 			paramList.List = append(paramList.List, recvField)
@@ -424,13 +482,30 @@ func (ip *InstrumentPhase) buildTrampolineType(before bool) *dst.FieldList {
 			util.Assert(ok, "paramField is not a Field")
 			paramList.List = append(paramList.List, paramField)
 		}
-	} else if ip.targetFunc.Type.Results != nil {
-		for _, field := range ip.targetFunc.Type.Results.List {
-			retField, ok := dst.Clone(field).(*dst.Field)
-			util.Assert(ok, "retField is not a Field")
-			paramList.List = append(paramList.List, retField)
+	} else {
+		// After hook: include receiver + parameters + return values
+		if hasReceiver {
+			recvField, ok := dst.Clone(ip.targetFunc.Recv.List[0]).(*dst.Field)
+			util.Assert(ok, "recvField is not a Field")
+			paramList.List = append(paramList.List, recvField)
+		}
+		for _, field := range ip.targetFunc.Type.Params.List {
+			paramField, ok := dst.Clone(field).(*dst.Field)
+			util.Assert(ok, "paramField is not a Field")
+			paramList.List = append(paramList.List, paramField)
+		}
+		if ip.targetFunc.Type.Results != nil {
+			for _, field := range ip.targetFunc.Type.Results.List {
+				retField, ok := dst.Clone(field).(*dst.Field)
+				util.Assert(ok, "retField is not a Field")
+				paramList.List = append(paramList.List, retField)
+			}
 		}
 	}
+
+	ip.Debug("buildTrampolineType end",
+		"result_field_count", len(paramList.List))
+
 	return paramList
 }
 
@@ -449,6 +524,7 @@ func (ip *InstrumentPhase) buildTrampolineTypes() {
 			paramField.Type = ast.DereferenceOf(paramFieldType)
 		}
 	}
+	// Add HookContext only to after trampoline (before trampoline creates it internally)
 	addHookContext(afterHookFunc.Type.Params)
 }
 

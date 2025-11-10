@@ -1,8 +1,8 @@
-module github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg/instrumentation/helloworld
+module github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/helloworld
 
 go 1.23.0
 
-replace github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg => ../..
+replace github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg => ../../pkg
 
 require (
 	github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg v0.0.0-20251014023539-a5ba44c6591d

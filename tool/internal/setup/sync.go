@@ -110,7 +110,18 @@ func (sp *SetupPhase) syncDeps(ctx context.Context, matched []*rule.InstRuleSet)
 		return addErr
 	}
 	changed = changed || added
-	if changed {
+	if added {
+		sp.Info("Replace dependency", "old", oldPath, "new", newPath)
+	}
+	// Add special pkg/otelsetup module to go.mod
+	oldPath = util.OtelRoot + "/pkg/otelsetup"
+	newPath = filepath.Join(util.GetBuildTempDir(), "pkg", "otelsetup")
+	added, addErr = addReplace(modfile, oldPath, "", newPath, "")
+	if addErr != nil {
+		return addErr
+	}
+	changed = changed || added
+	if added {
 		sp.Info("Replace dependency", "old", oldPath, "new", newPath)
 	}
 	if changed {

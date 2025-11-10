@@ -18,12 +18,12 @@ import (
 )
 
 func normalizePath(name string) string {
-	const pkg, pkgTemp = "pkg", "pkg_temp"
+	const pkgTemp = "pkg_temp"
 	cleanName := filepath.ToSlash(filepath.Clean(name))
 	if strings.HasPrefix(cleanName, pkgTemp+"/") {
-		cleanName = strings.Replace(cleanName, pkgTemp+"/", pkg+"/", 1)
+		cleanName = strings.TrimPrefix(cleanName, pkgTemp+"/")
 	} else if cleanName == pkgTemp {
-		cleanName = pkg
+		cleanName = ""
 	}
 	return cleanName
 }

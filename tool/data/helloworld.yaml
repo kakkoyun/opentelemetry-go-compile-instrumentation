@@ -5,7 +5,7 @@ hook_helloworld:
   target: main
   func: Example
   before: MyHookBefore
-  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg/instrumentation/helloworld"
+  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/helloworld"
 
 add_new_field:
   target: main
@@ -26,7 +26,7 @@ hook_recv:
   recv: "*MyStruct"
   before: MyHook1Before
   after: MyHook1After
-  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg/instrumentation/helloworld"
+  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/helloworld"
 
 version_range:
   target: golang.org/x/time/rate
@@ -53,4 +53,4 @@ only_after:
   target: main
   func: Example
   after: MyHookAfter
-  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pkg/instrumentation/helloworld"
+  path: "github.com/open-telemetry/opentelemetry-go-compile-instrumentation/instrumentation/helloworld"
