@@ -5,9 +5,13 @@ package instrument
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -143,6 +147,16 @@ func (ip *InstrumentPhase) updateImportConfig(ctx context.Context, newImports ma
 		return nil
 	}
 
+	if os.Getenv(util.EnvOtelcNestedResolve) != "" {
+		// This compile runs inside a nested export resolution started by an
+		// outer toolexec process — which is compiling the very package that
+		// triggered the resolve, so starting another resolve here would
+		// recurse without bound. Skipping is safe: added imports are consumed
+		// via //go:linkname, whose archives are needed at link time only, and
+		// a nested resolve never links. The outermost build records them.
+		return nil
+	}
+
 	// Initialize PackageFile map if nil
 	if ip.importConfig.PackageFile == nil {
 		ip.importConfig.PackageFile = make(map[string]string)
@@ -160,9 +174,21 @@ func (ip *InstrumentPhase) updateImportConfig(ctx context.Context, newImports ma
 			continue
 		}
 
-		// Resolve package archive location, passing build flags to match the current build context
+		// Resolve package archive location, passing build flags to match the
+		// current build context. The resolve must run through this same
+		// toolexec: the tool-ID stamp (see stampToolID) keys the build cache
+		// by otelc version and rule set, and archives produced outside the
+		// wrapper would carry different action IDs — and different export
+		// fingerprints once instrumentation changes a dependency — than the
+		// ones the final link consumes.
 		buildFlags := util.GetBuildFlags()
-		archives, err := pkgload.ResolveExportFiles(ctx, importPath, buildFlags...)
+		exe, exeErr := os.Executable()
+		if exeErr != nil {
+			return ex.Wrapf(exeErr, "locating otelc executable for nested resolve")
+		}
+		buildFlags = append(buildFlags, "-toolexec="+exe+" toolexec")
+		env := append(os.Environ(), util.EnvOtelcNestedResolve+"=1")
+		archives, err := pkgload.ResolveExportFiles(ctx, importPath, buildFlags, env)
 		if err != nil {
 			return ex.Wrapf(err, "resolving %q", importPath)
 		}
@@ -352,9 +378,49 @@ func interceptLink(ctx context.Context, args []string) ([]string, error) {
 // commands(link, compile, asm, etc) during build process. Our responsibility is
 // to find out the compile command we are interested in and run it with the
 // instrumented code, and ensure the link command has all necessary dependencies.
+// stampToolID answers a `<tool> -V=full` probe with the underlying tool's
+// version string extended by the otelc version and a digest of the matched
+// rule set. cmd/go mixes this output into every action ID, so without the
+// stamp a warm build cache keeps serving archives instrumented under a
+// previous rule set or otelc version — silently missing (or dangling)
+// instrumentation — and a GOCACHE shared with plain builds serves
+// instrumented archives to `go build` invocations that never asked for them.
+func stampToolID(ctx context.Context, args []string) error {
+	out, err := exec.CommandContext(ctx, args[0], args[1:]...).Output()
+	if err != nil {
+		return ex.Wrapf(err, "failed to probe %q with -V=full", args[0])
+	}
+	stamp := fmt.Sprintf("%s:otelc@%s;rules=%s\n",
+		strings.TrimRight(string(out), "\n"), util.Version, matchedRulesDigest())
+	if _, err = os.Stdout.WriteString(stamp); err != nil {
+		return ex.Wrap(err)
+	}
+	return nil
+}
+
+// matchedRulesDigest returns a short digest of the stored matched rule set,
+// or "none" when no matched.json exists (e.g. a bare `go build -toolexec`
+// invocation before setup ran). The file is written once per setup phase and
+// serialized deterministically, so identical rules yield identical digests.
+func matchedRulesDigest() string {
+	data, err := os.ReadFile(util.GetMatchedRuleFile())
+	if err != nil {
+		return "none"
+	}
+	sum := sha256.Sum256(data)
+	const digestBytes = 8
+	return hex.EncodeToString(sum[:digestBytes])
+}
+
 func Toolexec(ctx context.Context, args []string) error {
 	// Use slice-based detection to correctly handle tool paths with spaces
 	// (common on Windows, e.g., "C:\Program Files\Go\pkg\tool\...")
+
+	// Answer tool-identity probes with a stamp covering the otelc version and
+	// the active rule set, so the build cache invalidates when either changes
+	if util.IsToolIDProbe(args) {
+		return stampToolID(ctx, args)
+	}
 
 	// Intercept compile commands for instrumentation
 	if util.IsCompileCommandWithArgs(args) {
