@@ -1,0 +1,38 @@
+go: found go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init in go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/log in go.opentelemetry.io/otelc/instrumentation/log v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/client in go.opentelemetry.io/otelc/instrumentation/net/http/client v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/server in go.opentelemetry.io/otelc/instrumentation/net/http/server v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/runtime in go.opentelemetry.io/otelc/instrumentation/runtime v0.0.0-00010101000000-000000000000
+WORK=/tmp/go-build2244522301
+# example.com/harness
+Error:
+[0] failed to write to file $WORK/b001/otelc.init_otelsdk.go: format.Node internal error (6:1: expected 'IDENT', found 'import')
+[1] writing instrumented file $WORK/b001/otelc.init_otelsdk.go
+[2] applying file rule init_sdk to package 
+[3] instrumenting package main
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/internal/ast/parser.go:103 tool/internal/ast.WriteFile
+[1] go.opentelemetry.io/otelc/tool/internal/instrument/apply_file.go:66 tool/internal/instrument.(*InstrumentPhase).applyFileRule
+[2] go.opentelemetry.io/otelc/tool/internal/instrument/instrument.go:72 tool/internal/instrument.(*InstrumentPhase).instrument
+[3] go.opentelemetry.io/otelc/tool/internal/instrument/toolexec.go:125 tool/internal/instrument.interceptCompile
+[4] go.opentelemetry.io/otelc/tool/internal/instrument/toolexec.go:362 tool/internal/instrument.Toolexec
+[5] go.opentelemetry.io/otelc/tool/cmd/otelc/cmd_toolexec.go:22 main.init.func2
+[6] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[7] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[8] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[9] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[10] runtime/proc.go:285 runtime.main
+Error:
+[0] failed to run command "go" in dir '""' with args: [build -work -toolexec=/home/user/opentelemetry-go-compile-instrumentation/otelc toolexec -cover -o app-cover .]: exit status 1
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/util/sys.go:37 tool/util.runCmd
+[1] go.opentelemetry.io/otelc/tool/util/sys.go:44 tool/util.RunCmdWithEnv
+[2] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:525 tool/internal/setup.BuildWithToolexec
+[3] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:569 tool/internal/setup.GoBuild
+[4] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[5] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[6] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[7] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[8] runtime/proc.go:285 runtime.main

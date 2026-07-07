@@ -1,0 +1,4 @@
+A7 SUMMARY
+a) Documented 'where' combinators (docs/rules.md:110-111) rejected at load: 'rule "combinator_rule" has no recognised selector' (a7-combinator.log)
+b) 'otelc go build -cover' FAILS: format.Node internal error on injected otelc.init_otelsdk.go (a7-cover.log)
+c) PGO build (default.pgo present): exit 0, binary has ZERO trampolines - silently uninstrumented (a7-pgo.log)

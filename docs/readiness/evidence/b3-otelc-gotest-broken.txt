@@ -1,0 +1,4 @@
+B-NEW SUMMARY: 'otelc go test' is broken for all package shapes (v0.5.0-dev, 73f867f)
+1. Library package: writes otelc.runtime.go (package main) into the package dir -> 'found packages libpkg (lib.go) and main (otelc.runtime.go)' -> setup failed. (b3-otelc-gotest-lib.log)
+2. Main-package tests: (a) generated otelc.runtime.go is not vet-clean (non-constant format string, go test runs vet by default); (b) with -vet=off, synthetic test-main package fails: format.Node internal error (6:1: expected IDENT, found import) in applyFileRule(init_sdk) - same error as -cover builds.
+Note: repo CI never calls 'otelc go test' (integration tests build binaries), which is why this went unnoticed.
