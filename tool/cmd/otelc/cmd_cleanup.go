@@ -17,6 +17,11 @@ var commandCleanup = cli.Command{
 	Description: "Remove all artifacts created by the setup and build phases",
 	Before:      addLoggerPhaseAttribute,
 	Action: func(ctx context.Context, _ *cli.Command) error {
+		release, err := setup.AcquireBuildLock(ctx)
+		if err != nil {
+			return err
+		}
+		defer release()
 		return setup.Cleanup(ctx, true)
 	},
 }
