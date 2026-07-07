@@ -642,3 +642,63 @@ func TestSplitCompileCmds(t *testing.T) {
 		})
 	}
 }
+
+func TestIsToolIDProbe(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected bool
+	}{
+		{
+			name:     "compile -V=full",
+			args:     []string{"/usr/local/go/pkg/tool/linux_amd64/compile", "-V=full"},
+			expected: true,
+		},
+		{
+			name:     "link -V=full",
+			args:     []string{"/usr/local/go/pkg/tool/linux_amd64/link", "-V=full"},
+			expected: true,
+		},
+		{
+			name:     "windows compile probe",
+			args:     []string{`C:\Program Files\Go\pkg\tool\windows_amd64\compile.exe`, "-V=full"},
+			expected: true,
+		},
+		{
+			name:     "asm probe is not stamped",
+			args:     []string{"/usr/local/go/pkg/tool/linux_amd64/asm", "-V=full"},
+			expected: false,
+		},
+		{
+			name:     "vet probe is not stamped",
+			args:     []string{"/usr/local/go/pkg/tool/linux_amd64/vet", "-V=full"},
+			expected: false,
+		},
+		{
+			name:     "plain -V is not the full probe",
+			args:     []string{"/usr/local/go/pkg/tool/linux_amd64/compile", "-V"},
+			expected: false,
+		},
+		{
+			name: "real compile command is not a probe",
+			args: []string{
+				"/usr/local/go/pkg/tool/linux_amd64/compile",
+				"-o", "/tmp/out.a", "-p", "main", "-buildid", "abc", "main.go",
+			},
+			expected: false,
+		},
+		{
+			name:     "empty args",
+			args:     []string{},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if actual := IsToolIDProbe(tt.args); actual != tt.expected {
+				t.Errorf("IsToolIDProbe(%v) = %v, want %v", tt.args, actual, tt.expected)
+			}
+		})
+	}
+}

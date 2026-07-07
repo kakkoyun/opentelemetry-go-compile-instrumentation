@@ -62,7 +62,10 @@ func parseRuleFromYaml(content []byte) ([]rule.InstRule, error) {
 		return nil, ex.Wrap(err)
 	}
 	rules := make([]rule.InstRule, 0)
-	for name, fields := range h {
+	// Iterate in sorted order: rule order feeds matched.json, whose digest is
+	// part of the build-cache tool ID and must be stable for identical input.
+	for _, name := range slices.Sorted(maps.Keys(h)) {
+		fields := h[name]
 		flatRules, normErr := rule.Normalize(fields)
 		if normErr != nil {
 			return nil, normErr
@@ -624,6 +627,15 @@ func (sp *SetupPhase) matchDeps(
 	if err = g.Wait(); err != nil {
 		return nil, err
 	}
+	// Concurrent matching appends in completion order. Sort so matched.json is
+	// byte-identical across runs with the same rules — its digest is part of
+	// the tool ID that keys the build cache.
+	slices.SortFunc(matched, func(a, b *rule.InstRuleSet) int {
+		if c := strings.Compare(a.ModulePath, b.ModulePath); c != 0 {
+			return c
+		}
+		return strings.Compare(a.PackageName, b.PackageName)
+	})
 	if len(matched) == 0 {
 		_, _ = fmt.Fprintf(os.Stderr, "Warning: no instrumentation will be applied\n")
 		sp.Warn("no instrumentation rules matched any dependencies")
