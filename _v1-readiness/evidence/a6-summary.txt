@@ -1,0 +1,3 @@
+A6 SUMMARY: GOPROXY=off (air-gapped CI)
+- Warm shared module cache: build succeeds (deps already present from prior otelc builds).
+- Realistic case (module cache contains only the user's own deps): plain build OK, otelc build FAILS with dozens of 'module lookup disabled by GOPROXY=off' for injected otelc/otel/grpc deps. No actionable guidance in error. (a6-goproxy-off-fresh.log)
