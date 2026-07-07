@@ -423,7 +423,7 @@ func TestExtractBuildFlags(t *testing.T) {
 		{
 			name:     "mixed format",
 			args:     []string{"build", "-tags", "foo", "-mod=readonly", "-cover", "./..."},
-			expected: []string{"-tags", "foo", "-mod=readonly", "-cover"}, // value flags first, then sorted bool flags
+			expected: []string{"-tags", "foo", "-mod=readonly"}, // -cover is never forwarded (see buildContextBoolFlags)
 		},
 		{
 			name:     "ignores non-context flags",
@@ -461,14 +461,26 @@ func TestExtractBuildFlags(t *testing.T) {
 			expected: []string{"-race=false"},
 		},
 		{
-			name:     "cover=true is normalized",
+			// -cover is excluded from buildContextBoolFlags entirely: without
+			// -coverpkg, cmd/go only instruments packages in the main module or
+			// named directly on the command line (PrepareForCoverageBuild /
+			// matchMainModAndCommandLine). A nested `go list -export` resolve
+			// (see updateImportConfig) always queries a single otelc-owned
+			// dependency package that is never in the user's main module — but
+			// forwarding -cover would make it the command-line pattern for that
+			// isolated invocation, so cmd/go would instrument it there while the
+			// outer build never does. That produces two incompatible compiles of
+			// the same package with different linker fingerprints, and the link
+			// step fails with "fingerprint mismatch" once a consumer built
+			// against one archive is linked against the other.
+			name:     "cover=true is never forwarded (would wrongly instrument the nested resolve target)",
 			args:     []string{"build", "-cover=true", "./..."},
-			expected: []string{"-cover"},
+			expected: nil,
 		},
 		{
 			name:     "mixed bool formats",
 			args:     []string{"build", "-race=true", "-cover", "-msan=false", "./..."},
-			expected: []string{"-cover", "-msan=false", "-race"}, // sorted alphabetically
+			expected: []string{"-msan=false", "-race"}, // sorted alphabetically; -cover never forwarded
 		},
 		{
 			name:     "race=1 is truthy",
@@ -486,9 +498,9 @@ func TestExtractBuildFlags(t *testing.T) {
 			expected: []string{"-race"},
 		},
 		{
-			name:     "cover=True is truthy",
+			name:     "cover=True is still never forwarded",
 			args:     []string{"build", "-cover=True", "./..."},
-			expected: []string{"-cover"},
+			expected: nil,
 		},
 		{
 			name:     "race=0 is falsy",
@@ -534,7 +546,7 @@ func TestExtractBuildFlags(t *testing.T) {
 		{
 			name:     "cover disabled then enabled with tags",
 			args:     []string{"build", "-cover=false", "-tags=foo", "-cover", "./..."},
-			expected: []string{"-tags=foo", "-cover"}, // value flags first, then bool
+			expected: []string{"-tags=foo"}, // -cover never forwarded regardless of value/order
 		},
 	}
 
