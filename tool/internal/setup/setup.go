@@ -422,12 +422,28 @@ var buildContextFlagsWithValue = map[string]bool{
 
 // buildContextBoolFlags are go build boolean flags that affect the build context.
 //
+// -cover is deliberately excluded. -race/-msan/-asan instrument every package
+// in the build uniformly, so forwarding them keeps a nested `go list -export`
+// resolve (see updateImportConfig) action-ID-compatible with the outer build.
+// -cover does not: without -coverpkg, cmd/go only instruments packages in the
+// main module or named directly on the command line (see
+// cmd/go/internal/load.PrepareForCoverageBuild / matchMainModAndCommandLine).
+// A nested resolve always queries a single otelc-owned dependency package
+// (never the user's main module), but that package IS the command-line
+// pattern for that isolated `go list` invocation — so forwarding -cover would
+// make cmd/go instrument it for coverage there, while the outer build never
+// instruments it (it's neither in the main module nor named on the outer
+// command line). The result is two incompatible compiles of the same
+// package/version with different linker fingerprints, and the final link
+// (which prefers cmd/go's own, uncovered resolution — see interceptLink)
+// fails with "fingerprint mismatch" when a consumer compiled against the
+// covered archive is linked against the uncovered one.
+//
 //nolint:gochecknoglobals // private lookup table
 var buildContextBoolFlags = map[string]bool{
-	"-race":  true, // Race detector
-	"-msan":  true, // Memory sanitizer
-	"-cover": true, // Coverage
-	"-asan":  true, // Address sanitizer
+	"-race": true, // Race detector
+	"-msan": true, // Memory sanitizer
+	"-asan": true, // Address sanitizer
 }
 
 // extractBuildFlags extracts flags that affect the build context from the arguments.
