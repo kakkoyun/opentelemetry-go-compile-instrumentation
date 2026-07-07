@@ -206,12 +206,13 @@ cd /project/pkg/cgo2
 			},
 		},
 		{
-			name: "skip pgo compile commands",
+			name: "pgo compile commands are included, not skipped",
 			buildPlanContent: `
 /usr/local/go/pkg/tool/darwin_arm64/compile.exe -o /tmp/out.a -p main -buildid abc -pgoprofile /tmp/profile.pgo main.go
 /usr/local/go/pkg/tool/darwin_arm64/compile.exe -o /tmp/out2.a -p main -buildid def main.go
 `,
 			expectedCommands: []string{
+				"/usr/local/go/pkg/tool/darwin_arm64/compile.exe -o /tmp/out.a -p main -buildid abc -pgoprofile /tmp/profile.pgo main.go",
 				"/usr/local/go/pkg/tool/darwin_arm64/compile.exe -o /tmp/out2.a -p main -buildid def main.go",
 			},
 		},

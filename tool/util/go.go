@@ -54,11 +54,22 @@ func IsCompileCommandWithArgs(args []string) bool {
 		}
 	}
 
-	// PGO compile command is different, skip it
-	if hasFlag(args, "-pgoprofile") {
-		return false
-	}
-
+	// Note: PGO compile commands (carrying -pgoprofile) are intentionally NOT
+	// skipped here. When a main package has a profile (default.pgo or -pgo=<path>),
+	// cmd/go adds -pgoprofile to the compile invocation of every package in that
+	// main's transitive import graph instead of issuing a separate, additional
+	// pass. An earlier version of this function skipped -pgoprofile compiles to
+	// avoid double-processing a package that an older, since-removed findDeps
+	// implementation asserted could not appear twice in the dependency list (see
+	// git history of this function). That assumption no longer holds: findDeps
+	// and matchDeps tolerate a package appearing more than once, and instrument
+	// phase's rule lookup (see `match` in tool/internal/instrument/match.go)
+	// takes the first match for an import path, which is safe since duplicate
+	// entries for the same package resolve to the same rule set. Treating
+	// -pgoprofile compiles as "not a compile command" instead skipped
+	// instrumentation entirely for PGO-enabled builds: cmd/go tags essentially
+	// every compile with -pgoprofile in that mode, so the skip silently produced
+	// zero-instrumentation binaries with exit code 0.
 	return true
 }
 
