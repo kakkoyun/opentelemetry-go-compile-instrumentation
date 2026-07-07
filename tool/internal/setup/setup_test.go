@@ -436,6 +436,16 @@ func TestExtractBuildFlags(t *testing.T) {
 			expected: []string{"-modfile=go.custom.mod"},
 		},
 		{
+			name:     "pgo flag with equals",
+			args:     []string{"build", "-pgo=off", "./..."},
+			expected: []string{"-pgo=off"},
+		},
+		{
+			name:     "pgo flag with space separator",
+			args:     []string{"build", "-pgo", "/tmp/custom.pgo", "./..."},
+			expected: []string{"-pgo", "/tmp/custom.pgo"},
+		},
+		{
 			name:     "modfile with spaces in path",
 			args:     []string{"build", "-modfile", "path with spaces/go.mod", "./..."},
 			expected: []string{"-modfile", "path with spaces/go.mod"},
@@ -558,4 +568,86 @@ func TestExtractBuildFlags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResolveImplicitPGOFlag(t *testing.T) {
+	t.Run("explicit off short-circuits even with a profile present", func(t *testing.T) {
+		setupTestModule(t, nil)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		writeStubProfile(t, filepath.Join(cwd, "default.pgo"))
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"-pgo=off", "."})
+		assert.Empty(t, got, "explicit -pgo=off must not trigger auto-detection")
+	})
+
+	t.Run("explicit path short-circuits even with a default.pgo present", func(t *testing.T) {
+		setupTestModule(t, nil)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		writeStubProfile(t, filepath.Join(cwd, "default.pgo"))
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"-pgo=/some/explicit/profile.pgo", "."})
+		assert.Empty(t, got, "an explicit path is already forwarded verbatim by extractBuildFlags")
+	})
+
+	t.Run("no flag and no profile resolves to nothing", func(t *testing.T) {
+		setupTestModule(t, nil)
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"."})
+		assert.Empty(t, got)
+	})
+
+	t.Run("no flag but a default.pgo next to the main package is auto-detected", func(t *testing.T) {
+		setupTestModule(t, nil)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		profilePath := filepath.Join(cwd, "default.pgo")
+		writeStubProfile(t, profilePath)
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"."})
+		assert.Equal(t, "-pgo="+profilePath, got)
+	})
+
+	t.Run("explicit auto behaves the same as unset", func(t *testing.T) {
+		setupTestModule(t, nil)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		profilePath := filepath.Join(cwd, "default.pgo")
+		writeStubProfile(t, profilePath)
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"-pgo=auto", "."})
+		assert.Equal(t, "-pgo="+profilePath, got)
+	})
+
+	t.Run("profile is resolved relative to the target package directory, not cwd", func(t *testing.T) {
+		setupTestModule(t, []string{"cmd"})
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		// Only "cmd" has a profile; the module root does not.
+		profilePath := filepath.Join(cwd, "cmd", "default.pgo")
+		writeStubProfile(t, profilePath)
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"./cmd"})
+		assert.Equal(t, "-pgo="+profilePath, got)
+	})
+
+	t.Run("separate-argument form is recognized", func(t *testing.T) {
+		setupTestModule(t, nil)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		writeStubProfile(t, filepath.Join(cwd, "default.pgo"))
+
+		got := resolveImplicitPGOFlag(t.Context(), []string{"-pgo", "off", "."})
+		assert.Empty(t, got)
+	})
+}
+
+// writeStubProfile creates an empty placeholder file at path, standing in for
+// a default.pgo profile. resolveImplicitPGOFlag only checks for the file's
+// existence, so the content is irrelevant.
+func writeStubProfile(t *testing.T, path string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, []byte("not a real profile, just needs to exist"), 0o644))
 }
