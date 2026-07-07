@@ -28,13 +28,27 @@ func Cleanup(ctx context.Context, cleanAll bool) error {
 		}
 	}
 
+	reverted := true
 	if stateManager != nil {
 		if err := stateManager.Revert(); err != nil {
+			reverted = false
 			logger.WarnContext(ctx, "failed to revert state", "error", err)
+		} else if err := stateManager.Discard(); err != nil {
+			logger.WarnContext(ctx, "failed to discard consumed state", "error", err)
 		}
 	}
 
 	if cleanAll {
+		if !reverted {
+			// The manifest and snapshots under .otelc-build/state are the only
+			// way left to restore go.mod/go.sum; deleting them now would strand
+			// the tree with replace directives pointing at removed directories.
+			logger.WarnContext(ctx,
+				"keeping build temp dir: state could not be fully reverted; "+
+					"original file snapshots remain available for recovery",
+				"path", util.GetBuildTemp(stateDir))
+			return nil
+		}
 		// Remove the entire .otelc-build/ temp directory last.
 		// The extracted instrumentation package lives inside .otelc-build/pkg/,
 		// so this also covers removing it.
