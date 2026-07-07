@@ -1,0 +1,19 @@
+Error:
+[0] rule "combinator_rule" has no recognised selector
+[1] matching dependencies to hook rules
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/internal/setup/match.go:54 tool/internal/setup.createRuleFromFields
+[1] go.opentelemetry.io/otelc/tool/internal/setup/match.go:76 tool/internal/setup.parseRuleFromYaml
+[2] go.opentelemetry.io/otelc/tool/internal/setup/match.go:458 tool/internal/setup.loadCustomRules-range1
+[3] strings/iter.go:59 tool/internal/setup.loadCustomRules.SplitSeq.splitSeq.func2
+[4] go.opentelemetry.io/otelc/tool/internal/setup/match.go:433 tool/internal/setup.loadCustomRules
+[5] go.opentelemetry.io/otelc/tool/internal/setup/match.go:511 tool/internal/setup.(*SetupPhase).loadRules
+[6] go.opentelemetry.io/otelc/tool/internal/setup/match.go:541 tool/internal/setup.(*SetupPhase).matchDeps
+[7] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:315 tool/internal/setup.Setup
+[8] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:559 tool/internal/setup.GoBuild
+[9] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[10] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[11] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[12] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[13] runtime/proc.go:285 runtime.main

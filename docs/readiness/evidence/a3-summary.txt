@@ -1,0 +1,7 @@
+A3 SUMMARY: SIGKILL during 'otelc go build' bricks the project
+1. mid-build go.mod: 8 replace directives + ~45 injected deps (see a2-gomod-during-build.txt)
+2. after kill -9: go.mod dirty, otelc.runtime.go + go.sum orphaned; .otelc-build/state/ EMPTY (Commit never ran)
+3. plain 'go build' fails: replacement directory .otelc-build/... does not exist (after cleanup deleted them)
+4. 'otelc cleanup' restores nothing (nil state) and errors: unlinkat .otelc-build: directory not empty
+5. retry 'otelc go build' fails: missing go.sum entries (see a3-rebuild-after-kill-fails.log)
+Recovery requires manual: git checkout go.mod && rm otelc.runtime.go go.sum
