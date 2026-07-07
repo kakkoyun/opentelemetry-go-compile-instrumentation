@@ -21,6 +21,22 @@ func stripBuildIgnoreTag(content string) string {
 	return strings.ReplaceAll(content, "//go:build ignore", "")
 }
 
+// packageNameFromCompileArgs reads the package name from the first parsable Go
+// source file among the compile arguments. Used when setup-time resolution
+// could not name the package (synthetic test mains, cover-rewritten sources).
+func (ip *InstrumentPhase) packageNameFromCompileArgs() (string, error) {
+	for _, arg := range ip.compileArgs {
+		if !strings.HasSuffix(arg, ".go") || !util.PathExists(arg) {
+			continue
+		}
+		name, err := ast.ParsePackageName(arg)
+		if err == nil && name != "" {
+			return name, nil
+		}
+	}
+	return "", ex.Newf("no parsable Go source file among compile arguments")
+}
+
 // applyFileRule introduces the new file to the target package at compile time.
 func (ip *InstrumentPhase) applyFileRule(ctx context.Context, rule *rule.InstFileRule, pkgName string) error {
 	// List all files in the rule module path
@@ -49,7 +65,20 @@ func (ip *InstrumentPhase) applyFileRule(ctx context.Context, rule *rule.InstFil
 	if err != nil {
 		return ex.Wrapf(err, "parsing rule source file %s", file)
 	}
-	// Always rename the package name to the target package name
+	// Always rename the package name to the target package name.
+	//
+	// The setup-time name (pkgName) is empty for packages that cmd/go
+	// synthesizes after setup ran — the `go test` main package and
+	// cover-rewritten mains — and writing an empty name produces an
+	// unparsable file ("package \n"). The files being compiled are the
+	// authoritative source of the package name at this point, so read it
+	// from them when setup could not resolve one.
+	if pkgName == "" {
+		pkgName, err = ip.packageNameFromCompileArgs()
+		if err != nil {
+			return ex.Wrapf(err, "resolving package name for file rule %s", rule.Name)
+		}
+	}
 	root.Name.Name = pkgName
 
 	// The file being added has its own imports that need to be in importcfg.
