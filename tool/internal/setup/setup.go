@@ -293,8 +293,11 @@ func (sp *SetupPhase) generateRuntimePerPackage(
 			continue
 		}
 
-		// Introduce additional hook code by generating otelc.runtime.go
-		if err := sp.addDeps(ctx, matched, pkgDir); err != nil {
+		// Introduce additional hook code by generating otelc.runtime.go.
+		// The generated file must carry the target package's own name: writing
+		// a "package main" file into a library package makes any build of that
+		// package fail with a package-name clash (the otelc go test case).
+		if err := sp.addDeps(ctx, matched, pkgDir, pkg.Name); err != nil {
 			return ex.Wrapf(err, "adding deps for package at %s", pkgDir)
 		}
 	}
