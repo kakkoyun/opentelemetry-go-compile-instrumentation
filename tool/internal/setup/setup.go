@@ -412,6 +412,7 @@ var buildContextFlagsWithValue = map[string]bool{
 	"-tags":    true, // Build tags
 	"-mod":     true, // Module mode (vendor, mod, readonly)
 	"-modfile": true, // Custom go.mod file
+	"-pgo":     true, // Profile-guided optimization profile (explicit path or "off")
 }
 
 // buildContextBoolFlags are go build boolean flags that affect the build context.
@@ -498,6 +499,97 @@ func extractBuildFlags(args []string) []string {
 	return append(valueFlags, enabledBoolFlags...)
 }
 
+// resolveImplicitPGOFlag detects an auto-selected PGO profile and returns the
+// explicit "-pgo=<path>" flag to forward to the side-channel package
+// resolution used when patching importcfg for imports added during
+// instrumentation (see updateImportConfig in toolexec.go, which calls
+// pkgload.ResolveExportFiles). It returns "" when nothing extra needs
+// forwarding.
+//
+// go build defaults -pgo to "auto": if a file named default.pgo exists next
+// to a main package, cmd/go transparently applies it to every package in that
+// main's transitive import graph, not just the main package itself (see `go
+// help build`). That detection is silent, so extractBuildFlags — which only
+// extracts flags literally present on the command line — finds nothing to
+// forward in the common case where the user never passes -pgo at all.
+//
+// Left unhandled, this silence causes a real (if less severe) bug of its own:
+// pkgload.ResolveExportFiles resolves newly-added imports via its own `go
+// list -export` call, which has no reason to auto-detect a profile for an
+// unrelated import path. That side-channel compile then produces a distinct,
+// non-PGO object for the same import path that cmd/go's own build graph
+// already compiled WITH the profile, and the two disagree at link time
+// ("fingerprint mismatch ... has X, import from Y expecting Z"). Explicitly
+// forwarding "-pgo=<default.pgo path>" makes the side channel agree with
+// cmd/go's own resolution.
+//
+// An explicit "-pgo=<value>" on the command line (including "-pgo=off") is
+// already forwarded verbatim by extractBuildFlags (-pgo is registered in
+// buildContextFlagsWithValue) and always takes precedence, so this function
+// only ever needs to handle the unset/"auto" case.
+//
+// Known limitation: when a build spans multiple main packages with different
+// profiles (e.g. `go build ./...`), cmd/go may compile a shared dependency
+// once per distinct profile. This function forwards only the first profile it
+// finds, matching the restriction cmd/go itself documents for an explicit
+// -pgo path ("passing multiple main packages is not currently supported").
+// Packages whose added imports are resolved against a different main's
+// profile can still hit the same fingerprint mismatch; that is a pre-existing
+// gap in how the side channel mirrors cmd/go's build graph, not something
+// this fix introduces.
+func resolveImplicitPGOFlag(ctx context.Context, args []string) string {
+	logger := util.LoggerFromContext(ctx)
+
+	switch util.FindFlagValue(args, "-pgo") {
+	case "", "auto":
+		// Unset or explicit "auto": fall through to auto-detection below.
+	default:
+		// Explicit path or "off": extractBuildFlags already forwards this
+		// verbatim, nothing more to do.
+		return ""
+	}
+
+	pkgs, err := getBuildPackages(ctx, args)
+	if err != nil {
+		// Best-effort only. Setup already resolved these same packages
+		// successfully earlier in this build, so this is not expected to
+		// fail in practice. If PGO really is in effect and this lookup
+		// fails, the mismatch this function guards against will surface as
+		// a loud build failure rather than silent under-instrumentation.
+		logger.DebugContext(ctx, "failed to resolve packages for PGO auto-detection", "error", err)
+		return ""
+	}
+
+	// Prefer main packages, since that is where cmd/go itself looks for
+	// default.pgo. Fall back to any resolved package directory to also cover
+	// `go test`, which builds a synthesized main for the package under test.
+	ordered := make([]*packages.Package, 0, len(pkgs))
+	for _, pkg := range pkgs {
+		if pkg.Name == "main" {
+			ordered = append(ordered, pkg)
+		}
+	}
+	for _, pkg := range pkgs {
+		if pkg.Name != "main" {
+			ordered = append(ordered, pkg)
+		}
+	}
+
+	for _, pkg := range ordered {
+		dir := pkgload.PackageDir(pkg)
+		if dir == "" {
+			continue
+		}
+		profile := filepath.Join(dir, "default.pgo")
+		if util.PathExists(profile) {
+			logger.DebugContext(ctx, "detected implicit PGO profile", "path", profile)
+			return "-pgo=" + profile
+		}
+	}
+
+	return ""
+}
+
 // BuildWithToolexec builds the project with the toolexec mode
 func BuildWithToolexec(ctx context.Context, cmd *cli.Command) error {
 	args := cmd.Args().Slice()
@@ -539,7 +631,17 @@ func BuildWithToolexec(ctx context.Context, cmd *cli.Command) error {
 
 	// Extract and forward build flags that affect the build context
 	// This ensures `go list` resolves archives matching the current build
-	if buildFlags := extractBuildFlags(args); len(buildFlags) > 0 {
+	buildFlags := extractBuildFlags(args)
+	// args[1:] (the go subcommand trimmed) is what getBuildPackages expects,
+	// matching how Setup() calls it (cmd.Args().Tail()); passing the
+	// untrimmed args would make splitBuildTargets treat "build"/"install"/
+	// "test" itself as a package pattern. Deliberately args[1:] rather than
+	// restArgs, which may have had a synthetic otelc.runtime.go path appended
+	// for file-target builds above.
+	if pgoFlag := resolveImplicitPGOFlag(ctx, args[1:]); pgoFlag != "" {
+		buildFlags = append(buildFlags, pgoFlag)
+	}
+	if len(buildFlags) > 0 {
 		encoded := util.EncodeBuildFlags(buildFlags)
 		env = append(env, fmt.Sprintf("%s=%s", util.EnvOtelcBuildFlags, encoded))
 		logger.DebugContext(ctx, "forwarding build flags", "flags", buildFlags)
