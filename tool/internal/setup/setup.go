@@ -554,6 +554,14 @@ func GoBuild(ctx context.Context, cmd *cli.Command) error {
 	logger := util.LoggerFromContext(ctx)
 	ctx = ContextWithStateManager(ctx, NewStateManager())
 
+	// Serialize with other otelc invocations in this module before touching
+	// any shared state (tracking files, go.mod, .otelc-build contents).
+	release, lockErr := AcquireBuildLock(ctx)
+	if lockErr != nil {
+		return lockErr
+	}
+	defer release()
+
 	// Clean up import tracking files from previous builds at the start
 	// to prevent stale data from affecting this build.
 	instrument.CleanupImportTrackingFiles()
