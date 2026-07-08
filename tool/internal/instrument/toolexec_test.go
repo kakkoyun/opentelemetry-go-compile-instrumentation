@@ -4,9 +4,9 @@
 package instrument
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -419,20 +419,9 @@ func TestStampToolID(t *testing.T) {
 
 	captureStamp := func() string {
 		t.Helper()
-		r, w, pipeErr := os.Pipe()
-		require.NoError(t, pipeErr)
-		saved := os.Stdout
-		os.Stdout = w
-		defer func() { os.Stdout = saved }()
-
-		stampErr := stampToolID(context.Background(), []string{compile, "-V=full"})
-		require.NoError(t, w.Close())
-		os.Stdout = saved
-		require.NoError(t, stampErr)
-
-		captured, readErr := io.ReadAll(r)
-		require.NoError(t, readErr)
-		return string(captured)
+		var buf bytes.Buffer
+		require.NoError(t, stampToolID(context.Background(), []string{compile, "-V=full"}, &buf))
+		return buf.String()
 	}
 
 	stamped := captureStamp()

@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -374,10 +375,6 @@ func interceptLink(ctx context.Context, args []string) ([]string, error) {
 	return args, nil
 }
 
-// Toolexec is the entry point of the toolexec command. It intercepts all the
-// commands(link, compile, asm, etc) during build process. Our responsibility is
-// to find out the compile command we are interested in and run it with the
-// instrumented code, and ensure the link command has all necessary dependencies.
 // stampToolID answers a `<tool> -V=full` probe with the underlying tool's
 // version string extended by the otelc version and a digest of the matched
 // rule set. cmd/go mixes this output into every action ID, so without the
@@ -385,14 +382,15 @@ func interceptLink(ctx context.Context, args []string) ([]string, error) {
 // previous rule set or otelc version — silently missing (or dangling)
 // instrumentation — and a GOCACHE shared with plain builds serves
 // instrumented archives to `go build` invocations that never asked for them.
-func stampToolID(ctx context.Context, args []string) error {
-	out, err := exec.CommandContext(ctx, args[0], args[1:]...).Output()
+func stampToolID(ctx context.Context, args []string, out io.Writer) error {
+	//nolint:gosec // args is the toolchain invocation cmd/go passed to toolexec
+	probe, err := exec.CommandContext(ctx, args[0], args[1:]...).Output()
 	if err != nil {
 		return ex.Wrapf(err, "failed to probe %q with -V=full", args[0])
 	}
 	stamp := fmt.Sprintf("%s:otelc@%s;rules=%s\n",
-		strings.TrimRight(string(out), "\n"), util.Version, matchedRulesDigest())
-	if _, err = os.Stdout.WriteString(stamp); err != nil {
+		strings.TrimRight(string(probe), "\n"), util.Version, matchedRulesDigest())
+	if _, err = io.WriteString(out, stamp); err != nil {
 		return ex.Wrap(err)
 	}
 	return nil
@@ -412,6 +410,10 @@ func matchedRulesDigest() string {
 	return hex.EncodeToString(sum[:digestBytes])
 }
 
+// Toolexec is the entry point of the toolexec command. It intercepts all the
+// commands(link, compile, asm, etc) during build process. Our responsibility is
+// to find out the compile command we are interested in and run it with the
+// instrumented code, and ensure the link command has all necessary dependencies.
 func Toolexec(ctx context.Context, args []string) error {
 	// Use slice-based detection to correctly handle tool paths with spaces
 	// (common on Windows, e.g., "C:\Program Files\Go\pkg\tool\...")
@@ -419,7 +421,7 @@ func Toolexec(ctx context.Context, args []string) error {
 	// Answer tool-identity probes with a stamp covering the otelc version and
 	// the active rule set, so the build cache invalidates when either changes
 	if util.IsToolIDProbe(args) {
-		return stampToolID(ctx, args)
+		return stampToolID(ctx, args, os.Stdout)
 	}
 
 	// Intercept compile commands for instrumentation
