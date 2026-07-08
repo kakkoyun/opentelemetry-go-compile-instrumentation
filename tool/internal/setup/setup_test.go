@@ -421,9 +421,13 @@ func TestExtractBuildFlags(t *testing.T) {
 			expected: []string{"-tags=foo", "-mod=vendor", "-race"}, // value flags first, then sorted bool flags
 		},
 		{
-			name:     "mixed format",
-			args:     []string{"build", "-tags", "foo", "-mod=readonly", "-cover", "./..."},
-			expected: []string{"-tags", "foo", "-mod=readonly"}, // -cover is never forwarded (see buildContextBoolFlags)
+			name: "mixed format",
+			args: []string{"build", "-tags", "foo", "-mod=readonly", "-cover", "./..."},
+			expected: []string{
+				"-tags",
+				"foo",
+				"-mod=readonly",
+			}, // -cover is never forwarded (see buildContextBoolFlags)
 		},
 		{
 			name:     "ignores non-context flags",
