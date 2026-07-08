@@ -229,7 +229,7 @@ func (s *StateManager) Commit() error {
 // Discard removes the persisted manifest and snapshots. Call it only after a
 // successful Revert: the state is consumed, and leaving it behind would let a
 // later `otelc cleanup` re-apply snapshots from a finished build.
-func (s *StateManager) Discard() error {
+func (*StateManager) Discard() error {
 	var err error
 	if rmErr := os.Remove(util.GetBuildTemp(stateFileName)); rmErr != nil && !os.IsNotExist(rmErr) {
 		err = ex.Join(err, rmErr)
