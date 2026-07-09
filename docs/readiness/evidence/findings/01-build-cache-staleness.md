@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1 (correctness bug in a shipped feature; not a compat break to fix)
 Tested on: main @ 73f867f, go1.25.0, linux/amd64
-Status: fix drafted (see below) — not yet merged as of this audit
+Status: fix up for review as fork draft PR [kakkoyun#9](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/9) (see below) — not merged upstream
 
 ## What happens
 
@@ -69,6 +69,6 @@ Orchestrion hit the same problem and solves it by intercepting `-V=full` and app
 
 ## Status update
 
-A fix along exactly these lines is drafted on branch `v1-readiness/cache-identity` (commit `ee382a5`, "stamp compile/link tool IDs with otelc version and rules digest"): it answers `-V=full` probes with `<tool version>:otelc@<version>;rules=<digest of matched.json>` and routes the nested `go list -export` used for added-import resolution through the same toolexec so its archives share the stamped action IDs. Not yet merged; treat the bug above as live until it lands.
+A fix along exactly these lines is up for review as fork draft PR [kakkoyun#9](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/9) (branch `v1-readiness/cache-identity`, rebased onto upstream `ad45522`): it answers `-V=full` probes with `<tool version>:otelc@<version>;rules=<digest of matched.json>` and routes the nested `go list -export` used for added-import resolution through the same toolexec so its archives share the stamped action IDs. Not merged upstream; treat the bug above as live until it lands.
 
 Evidence logs: [a1-dir1-stale-link-failure.log](../a1-dir1-stale-link-failure.log), [a1-dir2-silent-missing-instrumentation.txt](../a1-dir2-silent-missing-instrumentation.txt), [a1-var3-shared-gocache-poisoning.log](../a1-var3-shared-gocache-poisoning.log).

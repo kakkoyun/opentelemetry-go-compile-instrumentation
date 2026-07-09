@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1 — CI job cancellations and OOM kills are routine, and the failure mode is a broken working tree
 Tested on: main @ 73f867f
-Status: fix drafted (see below) — not yet merged as of this audit
+Status: fix up for review as fork draft PR [kakkoyun#10](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/10) (see below) — not merged upstream
 
 ## What happens
 
@@ -42,6 +42,6 @@ Related: the same missing-manifest problem makes concurrent builds destructive (
 
 ## Status update
 
-A fix along these lines is drafted on branch `v1-readiness/state-commit` (commit `2929e8d`, "persist state before mutating the tree; make cleanup crash-safe"): `Track` now writes the manifest atomically (temp file + rename, sorted entries) before returning in both setup paths, and `cleanup` restores from that manifest in a fresh process, discarding consumed state after a successful revert and refusing to delete `.otelc-build` while a failed revert still needs the snapshots inside it. Not yet merged; treat the bug above as live until it lands.
+A fix along these lines is up for review as fork draft PR [kakkoyun#10](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/10) (branch `v1-readiness/state-commit`, rebased onto upstream `ad45522`): `Track` now writes the manifest atomically (temp file + rename, sorted entries) before returning in both setup paths, and `cleanup` restores from that manifest in a fresh process, discarding consumed state after a successful revert and refusing to delete `.otelc-build` while a failed revert still needs the snapshots inside it. Not merged upstream; treat the bug above as live until it lands. Upstream context: the reviewer discussion on [#659](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/659) independently confirms the persistence gap this fixes.
 
 Evidence: [a3-summary.txt](../a3-summary.txt), [a3-rebuild-after-kill-fails.log](../a3-rebuild-after-kill-fails.log), [a2-gomod-during-build.txt](../a2-gomod-during-build.txt).

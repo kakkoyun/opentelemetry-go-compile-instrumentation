@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1, or remove `test` from the supported verbs until it works — shipping v1 with a broken advertised verb invites exactly the first-contact failures we want to avoid
 Tested on: main @ 73f867f
-Status: fix drafted (see below) — not yet merged as of this audit
+Status: fix up for review as fork draft PR [kakkoyun#12](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/12) (see below) — not merged upstream
 
 ## What happens
 
@@ -42,6 +42,6 @@ Worth noting why CI never caught this: the integration suite builds app binaries
 
 ## Status update
 
-A fix is drafted on branch `v1-readiness/gotest-runtime-file` (commit `f725ece`, "make otelc go test work for library and main packages"): `otelc.runtime.go` is now generated with the target package's own name instead of a hardcoded `main`, the generated stack-print helper uses a vet-clean `Printf("%s", ...)` call, and the file-rule writer derives the package name from the compiled files themselves when setup-time resolution left it empty (synthetic test mains, cover-rewritten sources) instead of emitting an unparsable `package` clause. Whether this last change also resolves the `-cover` half of the shared crash (finding 07) is still being verified separately — see that finding's status note. Not yet merged; treat the bug above as live until it lands.
+A fix is up for review as fork draft PR [kakkoyun#12](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/12) (branch `v1-readiness/gotest-runtime-file`, rebased onto upstream `ad45522`): `otelc.runtime.go` is now generated with the target package's own name instead of a hardcoded `main`, the generated stack-print helper uses a vet-clean `Printf("%s", ...)` call, and the file-rule writer derives the package name from the compiled files themselves when setup-time resolution left it empty (synthetic test mains, cover-rewritten sources) instead of emitting an unparsable `package` clause. The `-cover` half of the shared crash is resolved by the companion stacked PR [kakkoyun#13](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/13) — see [finding 07](07-cover-broken-pgo-silent.md). Not merged upstream; treat the bug above as live until it lands.
 
 Evidence: [b3-otelc-gotest-lib.log](../b3-otelc-gotest-lib.log), [b3-otelc-gotest-broken.txt](../b3-otelc-gotest-broken.txt), [b3-otelc-vet-bug.txt](../b3-otelc-vet-bug.txt).

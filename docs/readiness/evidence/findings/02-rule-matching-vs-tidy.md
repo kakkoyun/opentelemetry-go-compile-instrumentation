@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1 — this is the general mechanism behind [#494](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/issues/494)
 Tested on: main @ 73f867f, go1.25.0, linux/amd64
-Status: mechanism addressed upstream, not yet merged (see below)
+Status: **fixed upstream** — [PR #655](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/655) merged as `238f23d` (2026-07-08); re-verified fixed at `ad45522` (see status update below)
 
 ## What happens
 
@@ -69,6 +69,10 @@ Also worth doing regardless: when `writeInstrumented` can't find the original fi
 
 ## Status update
 
-[PR #655](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/655) ("add `otelc pin` command") implements option 1 above as a side effect of a larger change: it moves `syncDeps` into the new `Pin` step and re-parses compile commands against the post-tidy dependency graph before matching. Its description states this closes [#494](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/issues/494) directly. The PR is open and not yet merged as of this audit, and does not by itself add `version:` ranges (option 3) or improve the "cannot replace" error message — those remain open regardless of #655's fate.
+[PR #655](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/655) ("add `otelc pin` command") implements option 1 above as a side effect of a larger change: it moves `syncDeps` into the new `Pin` step and re-parses compile commands against the post-tidy dependency graph before matching. Its description states this closes [#494](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/issues/494) directly.
 
-Evidence logs: [a2-grpc-pinned-low.log](../a2-grpc-pinned-low.log), [a2-go124-directive.log](../a2-go124-directive.log), [a2-summary.txt](../a2-summary.txt).
+**Re-verified 2026-07-09, after #655 merged (`238f23d`), against upstream main `ad45522`:** both repro modes above now **build successfully in the default flow** (no explicit `otelc pin` needed). The grpc-v1.70.0 app with a `go 1.24.7` directive — i.e. both failure modes at once — produced a fully instrumented binary (`otelc go build` exit 0; `go tool nm | grep -c OtelBeforeTrampoline` → 10), with explicit notices during the build (`Bumped dependency google.golang.org/grpc (v1.70.0 -> v1.82.0)`, `Bumped go version (1.24.7 -> 1.25.0)`) and the user's go.mod restored to its original pins afterward. Rerun log: [a2-pin-recheck.log](../a2-pin-recheck.log).
+
+Still open regardless: #655 does not add `version:` ranges (option 3) and the improved "cannot replace" error message (for any residual paths into `writeInstrumented`) was not part of it. The silent-upgrade *policy* question — the bump is now loud, but still automatic — moves to [ADR-0006](../../../adr/0006-dependency-version-policy-for-bundled-instrumentation.md).
+
+Original evidence logs: [a2-grpc-pinned-low.log](../a2-grpc-pinned-low.log), [a2-go124-directive.log](../a2-go124-directive.log), [a2-summary.txt](../a2-summary.txt).

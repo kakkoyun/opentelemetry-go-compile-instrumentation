@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1 (data-loss class; IDE save-hooks and parallel CI matrix jobs will trigger it)
 Tested on: main @ 73f867f, go1.25.0, linux/amd64
-Status: fix drafted (see below) — not yet merged as of this audit
+Status: fix up for review as fork draft PR [kakkoyun#11](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/11) (see below) — not merged upstream
 
 ## What happens
 
@@ -28,6 +28,6 @@ grep -c "^replace" go.mod   # 8 — should be 0 after both builds complete
 
 ## Status update
 
-A fix is drafted on branch `v1-readiness/build-lock` (commit `ea99dcc`, "serialize concurrent otelc invocations with a build lock"): an OS advisory file lock (`gofrs/flock`) now wraps every invocation that mutates the module — `go build`/`install`/`test`, `setup`, and `cleanup`. A second invocation logs that it is waiting and blocks until the holder finishes or its own context is canceled; advisory locks die with the process, so a killed holder cannot wedge the module. The commit notes the before/after repro matches the one above (8 replace directives after two parallel builds, before; both succeed and go.mod is restored, after). Not yet merged; treat the bug above as live until it lands.
+A fix is up for review as fork draft PR [kakkoyun#11](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/11) (branch `v1-readiness/build-lock`, rebased onto upstream `ad45522`): an OS advisory file lock (`gofrs/flock`) now wraps every invocation that mutates the module — `go build`/`install`/`test`, `setup`, and `cleanup`. A second invocation logs that it is waiting and blocks until the holder finishes or its own context is canceled; advisory locks die with the process, so a killed holder cannot wedge the module. The before/after repro matches the one above (8 replace directives after two parallel builds, before; both succeed and go.mod is restored, after). Fork CI subsequently caught and the PR fixed two portability details worth reviewing: the lock file lives *next to* `.otelc-build`, not inside it (Windows cannot delete a directory containing the process's own open lock file), and the sibling `test/` module needed re-tidying for flock's `golang.org/x/sys` bump. Not merged upstream; treat the bug above as live until it lands.
 
 Evidence: [a4-concurrent-builds.txt](../a4-concurrent-builds.txt).

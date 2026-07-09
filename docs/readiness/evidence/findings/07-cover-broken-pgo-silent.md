@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: PGO half before v1 (silent-loss class); `-cover` alongside the go-test fix (same crash)
 Tested on: main @ 73f867f
-Status: `-cover` half under investigation; PGO half open (see below)
+Status: fixes for both halves up for review on fork draft PRs — [kakkoyun#13](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/13) (`-cover`) and [kakkoyun#14](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/14) (PGO); neither merged upstream (see below)
 
 ## What happens
 
@@ -37,6 +37,11 @@ go tool nm app | grep -c OtelBeforeTrampoline   # 0
 
 ## Status update
 
-The `otelc go test` fix (branch `v1-readiness/gotest-runtime-file`, commit `f725ece` — see [finding 06](06-go-test-broken.md)) changes the same file-rule writer code path that crashes on `-cover`, since both hit the writer with a setup-time-unresolved package name. A branch (`v1-readiness/cover-fingerprint`) exists that merges the go-test fix and the [cache-identity fix](01-build-cache-staleness.md) as prerequisites, but carries no independent commit of its own yet — whether the shared crash is fully resolved for `-cover`, or whether cover-rewritten sources raise a distinct problem once the writer no longer crashes (the branch name suggests a remaining question about how cover interacts with the cache/build-ID stamp), is still under investigation as of this audit. The PGO silent-skip half has no fix in progress and remains fully open.
+Both halves now have complete drafted fixes on the fork, verified end to end:
+
+- **`-cover`**: the investigation resolved into fork draft PR [kakkoyun#13](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/13) (branch `v1-readiness/cover-fingerprint`), stacked on the [go-test fix](06-go-test-broken.md) ([kakkoyun#12](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/12)) and the [cache-identity fix](01-build-cache-staleness.md) ([kakkoyun#9](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/9)). The writer crash was the first layer; the distinct second problem was a link-time `fingerprint mismatch` caused by forwarding `-cover` to the nested `go list -export` resolve (default coverage selection instruments only main-module and command-line packages, so the nested resolve produced coverage-instrumented archives of packages the outer build compiles uncovered). The PR stops forwarding `-cover`; `otelc go build -cover` then succeeds with instrumentation present and working coverage output.
+- **PGO**: fixed by fork draft PR [kakkoyun#14](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/14) (branch `v1-readiness/pgo-not-silent`): removes the obsolete `-pgoprofile` skip and makes the nested import resolution profile-aware (implicit `default.pgo` converted to an explicit `-pgo=<abspath>` for the nested resolve).
+
+Neither is merged upstream; treat both halves as live until they land.
 
 Evidence: [a7-cover.log](../a7-cover.log), [a7-pgo.log](../a7-pgo.log), [a7-summary.txt](../a7-summary.txt).
