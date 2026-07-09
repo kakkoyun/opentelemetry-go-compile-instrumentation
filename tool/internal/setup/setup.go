@@ -566,14 +566,15 @@ func resolveImplicitPGOFlag(ctx context.Context, args []string) string {
 	// Prefer main packages, since that is where cmd/go itself looks for
 	// default.pgo. Fall back to any resolved package directory to also cover
 	// `go test`, which builds a synthesized main for the package under test.
+	const mainPkgName = "main"
 	ordered := make([]*packages.Package, 0, len(pkgs))
 	for _, pkg := range pkgs {
-		if pkg.Name == "main" {
+		if pkg.Name == mainPkgName {
 			ordered = append(ordered, pkg)
 		}
 	}
 	for _, pkg := range pkgs {
-		if pkg.Name != "main" {
+		if pkg.Name != mainPkgName {
 			ordered = append(ordered, pkg)
 		}
 	}
