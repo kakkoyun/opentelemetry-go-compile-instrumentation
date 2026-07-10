@@ -57,9 +57,14 @@ func TestIsCompileCommand(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "PGO compile command should be excluded",
+			name:     "PGO compile command should still be recognized as a compile command",
 			line:     "/usr/local/go/pkg/tool/linux_amd64/compile -o /tmp/output.a -p main -buildid abc123 -pgoprofile /tmp/default.pgo",
-			expected: false,
+			expected: true,
+		},
+		{
+			name:     "PGO compile command with = syntax should still be recognized as a compile command",
+			line:     "/usr/local/go/pkg/tool/linux_amd64/compile -o /tmp/output.a -p main -buildid abc123 -pgoprofile=/tmp/default.pgo",
+			expected: true,
 		},
 		{
 			name:     "complete compile command with additional flags",
@@ -201,11 +206,38 @@ func TestIsCompileArgs(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "PGO compile should be excluded",
+			name: "PGO compile should still be recognized as a compile command",
 			args: []string{
 				"/usr/local/go/pkg/tool/linux_amd64/compile",
 				"-o",
 				"/tmp/output.a",
+				"-p",
+				"main",
+				"-buildid",
+				"abc123",
+				"-pgoprofile",
+				"/tmp/default.pgo",
+			},
+			expected: true,
+		},
+		{
+			name: "PGO compile with = syntax should still be recognized as a compile command",
+			args: []string{
+				"/usr/local/go/pkg/tool/linux_amd64/compile",
+				"-o",
+				"/tmp/output.a",
+				"-p",
+				"main",
+				"-buildid",
+				"abc123",
+				"-pgoprofile=/tmp/default.pgo",
+			},
+			expected: true,
+		},
+		{
+			name: "PGO compile missing a required flag is still excluded",
+			args: []string{
+				"/usr/local/go/pkg/tool/linux_amd64/compile",
 				"-p",
 				"main",
 				"-buildid",
