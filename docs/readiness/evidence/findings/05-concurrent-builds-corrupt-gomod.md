@@ -3,7 +3,7 @@
 Labels: `bug`
 Suggested milestone: fix before v1 (data-loss class; IDE save-hooks and parallel CI matrix jobs will trigger it)
 Tested on: main @ 73f867f, go1.25.0, linux/amd64
-Status: fix up for review as fork draft PR [kakkoyun#11](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/11) (see below) — not merged upstream
+Status: fix **submitted upstream as [open-telemetry#672](https://github.com/open-telemetry/opentelemetry-go-compile-instrumentation/pull/672)** (from fork PR [kakkoyun#11](https://github.com/kakkoyun/opentelemetry-go-compile-instrumentation/pull/11); see below) — awaiting review
 
 ## What happens
 
