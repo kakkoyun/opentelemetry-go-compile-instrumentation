@@ -4,10 +4,14 @@
 package instrument
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -372,4 +376,65 @@ func TestCleanupImportTrackingFiles(t *testing.T) {
 		// Should not panic
 		CleanupImportTrackingFiles()
 	})
+}
+
+func TestMatchedRulesDigest(t *testing.T) {
+	t.Run("no matched.json yields none", func(t *testing.T) {
+		t.Setenv(util.EnvOtelcWorkDir, t.TempDir())
+		assert.Equal(t, "none", matchedRulesDigest())
+	})
+
+	t.Run("digest is stable and content-sensitive", func(t *testing.T) {
+		tempDir := t.TempDir()
+		t.Setenv(util.EnvOtelcWorkDir, tempDir)
+		require.NoError(t, os.MkdirAll(util.GetBuildTempDir(), 0o755))
+
+		require.NoError(t, os.WriteFile(util.GetMatchedRuleFile(), []byte(`[{"module_path":"net/http"}]`), 0o644))
+		first := matchedRulesDigest()
+		assert.Len(t, first, 16)
+		assert.Equal(t, first, matchedRulesDigest(), "same content must yield the same digest")
+
+		require.NoError(t, os.WriteFile(util.GetMatchedRuleFile(), []byte(`[]`), 0o644))
+		assert.NotEqual(t, first, matchedRulesDigest(), "changed rules must change the digest")
+	})
+}
+
+func TestStampToolID(t *testing.T) {
+	toolDirRaw, err := exec.Command("go", "env", "GOTOOLDIR").Output()
+	if err != nil {
+		t.Skipf("go toolchain unavailable: %v", err)
+	}
+	compile := filepath.Join(strings.TrimSpace(string(toolDirRaw)), "compile")
+	if util.IsWindows() {
+		compile += ".exe"
+	}
+	if _, statErr := os.Stat(compile); statErr != nil {
+		t.Skipf("compile tool not found at %s", compile)
+	}
+
+	tempDir := t.TempDir()
+	t.Setenv(util.EnvOtelcWorkDir, tempDir)
+	require.NoError(t, os.MkdirAll(util.GetBuildTempDir(), 0o755))
+	require.NoError(t, os.WriteFile(util.GetMatchedRuleFile(), []byte(`[{"module_path":"net/http"}]`), 0o644))
+
+	captureStamp := func() string {
+		t.Helper()
+		var buf bytes.Buffer
+		require.NoError(t, stampToolID(context.Background(), []string{compile, "-V=full"}, &buf))
+		return buf.String()
+	}
+
+	stamped := captureStamp()
+
+	// cmd/go parses the probe output as `<name> version <...>` on one line;
+	// the stamp must extend that line, not add a second one.
+	assert.True(t, strings.HasPrefix(stamped, "compile version "), "stamp output: %q", stamped)
+	assert.Equal(t, 1, strings.Count(stamped, "\n"), "stamp must remain a single line: %q", stamped)
+	assert.Contains(t, stamped, ":otelc@"+util.Version+";rules=")
+	assert.NotContains(t, stamped, "rules=none")
+
+	// A different rule set must produce a different tool ID.
+	require.NoError(t, os.WriteFile(util.GetMatchedRuleFile(), []byte(`[]`), 0o644))
+	restamped := captureStamp()
+	assert.NotEqual(t, stamped, restamped, "rule change must change the stamped tool ID")
 }

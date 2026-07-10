@@ -75,7 +75,7 @@ func TestResolveExportFiles(t *testing.T) {
 	ctx := t.Context()
 
 	// Test with a standard library package
-	archives, err := ResolveExportFiles(ctx, "fmt")
+	archives, err := ResolveExportFiles(ctx, "fmt", nil, nil)
 	require.NoError(t, err)
 
 	// Should have fmt and its dependencies
@@ -94,7 +94,7 @@ func TestResolveExportFiles_InvalidPackage(t *testing.T) {
 	ctx := t.Context()
 
 	// Test with a non-existent package
-	_, err := ResolveExportFiles(ctx, "this/package/does/not/exist")
+	_, err := ResolveExportFiles(ctx, "this/package/does/not/exist", nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "loading package")
 }
@@ -103,7 +103,7 @@ func TestResolveExportFiles_MultiplePackages(t *testing.T) {
 	ctx := t.Context()
 
 	// Test with net/http which has many dependencies
-	archives, err := ResolveExportFiles(ctx, "net/http")
+	archives, err := ResolveExportFiles(ctx, "net/http", nil, nil)
 	require.NoError(t, err)
 
 	// Should include net/http itself
@@ -125,7 +125,7 @@ func TestResolveExportFiles_NoExportFile(t *testing.T) {
 	ctx := t.Context()
 
 	// Test with "unsafe" which has no export archive
-	archives, err := ResolveExportFiles(ctx, "unsafe")
+	archives, err := ResolveExportFiles(ctx, "unsafe", nil, nil)
 	require.Error(t, err, "unsafe package should not have an export archive")
 	assert.Contains(t, err.Error(), "not found or has no export file")
 	assert.Nil(t, archives)
