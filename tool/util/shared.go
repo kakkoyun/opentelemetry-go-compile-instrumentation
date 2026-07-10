@@ -22,13 +22,20 @@ const (
 	EnvOtelcStats = "OTELC_STATS"
 	// EnvOtelcDebug enables debug-level logging when set to "1".
 	// Set automatically when --debug is used; propagated to child processes.
-	EnvOtelcDebug    = "OTELC_DEBUG"
-	BuildTempDir     = ".otelc-build"
-	OtelcRoot        = "go.opentelemetry.io/otelc"
-	OtelcPkgRoot     = OtelcRoot + "/pkg"
-	OtelcInstRoot    = OtelcRoot + "/instrumentation"
-	OtelcToolCmdRoot = OtelcRoot + "/tool/cmd/otelc"
-	OtelcToolExe     = "otelc"
+	EnvOtelcDebug = "OTELC_DEBUG"
+	// EnvOtelcNestedResolve marks a `go list -export` spawned by a toolexec
+	// process to resolve archives for instrumentation-added imports. Toolexec
+	// invocations inside such a resolve must not start another one: the
+	// resolve compiles the very package that triggered it, so resolving
+	// again would recurse without bound. Only the outermost build tracks
+	// added imports for the link step.
+	EnvOtelcNestedResolve = "OTELC_NESTED_RESOLVE"
+	BuildTempDir          = ".otelc-build"
+	OtelcRoot             = "go.opentelemetry.io/otelc"
+	OtelcPkgRoot          = OtelcRoot + "/pkg"
+	OtelcInstRoot         = OtelcRoot + "/instrumentation"
+	OtelcToolCmdRoot      = OtelcRoot + "/tool/cmd/otelc"
+	OtelcToolExe          = "otelc"
 	// TODO: remove these once v1 is released and migrate all usage to the constants above
 	OtelcOldRoot        = "github.com/open-telemetry/opentelemetry-go-compile-instrumentation"
 	OtelcOldToolCmdRoot = OtelcOldRoot + "/tool/cmd"

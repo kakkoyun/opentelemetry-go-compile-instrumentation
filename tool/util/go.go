@@ -84,6 +84,19 @@ func IsLinkCommandWithArgs(args []string) bool {
 	return true
 }
 
+// IsToolIDProbe reports whether args is a `<tool> -V=full` invocation for a
+// tool whose output otelc modifies (compile, link). cmd/go issues this probe
+// through the toolexec wrapper to compute the tool IDs that feed every action
+// ID in the build cache, so the wrapper must answer it with an identity that
+// reflects its own effect on the tool's output.
+func IsToolIDProbe(args []string) bool {
+	const probeArgCount = 2
+	if len(args) != probeArgCount || args[1] != "-V=full" {
+		return false
+	}
+	return isCompileTool(args[0]) || isLinkTool(args[0])
+}
+
 // isCgoCommand checks if the line is a cgo tool invocation with -objdir and -importpath flags.
 func IsCgoCommand(line string) bool {
 	return strings.Contains(line, "cgo") &&

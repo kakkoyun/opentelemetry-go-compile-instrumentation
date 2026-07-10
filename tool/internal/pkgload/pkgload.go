@@ -95,12 +95,24 @@ func ResolvePackageName(ctx context.Context, importPath string, buildFlags ...st
 }
 
 // ResolveExportFiles returns importPath -> exportFile for a package and all
-// transitive dependencies.
-func ResolveExportFiles(ctx context.Context, importPath string, buildFlags ...string) (map[string]string, error) {
+// transitive dependencies. A non-nil env replaces the environment of the
+// underlying `go list -export` invocation (pass os.Environ() plus additions).
+func ResolveExportFiles(
+	ctx context.Context,
+	importPath string,
+	buildFlags []string,
+	env []string,
+) (map[string]string, error) {
 	mode := packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedExportFile
-	pkgs, err := LoadPackages(ctx, mode, buildFlags, importPath)
+	cfg := &packages.Config{
+		Mode:       mode,
+		Context:    ctx,
+		BuildFlags: buildFlags,
+		Env:        env,
+	}
+	pkgs, err := packages.Load(cfg, importPath)
 	if err != nil {
-		return nil, err
+		return nil, ex.Wrapf(err, "loading packages %v", importPath)
 	}
 
 	if len(pkgs) == 0 {
