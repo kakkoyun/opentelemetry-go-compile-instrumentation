@@ -1,0 +1,4 @@
+A2 SUMMARY
+(iii) grpc pinned v1.70.0: otelc go build FAILS: 'cannot replace .../grpc@v1.70.0/clientconn.go' while compile args show grpc@v1.82.0 paths (match ran pre-tidy, tidy bumped to hook requirement). Log: a2-grpc-pinned-low.log
+(iv) go 1.24.0 directive app: otelc go build FAILS: 'cannot replace /usr/local/go1.24.7/src/runtime/runtime2.go' while compile uses toolchain@go1.25.0 paths (find phase on 1.24 toolchain, tidy raised requirement to 1.25 -> toolchain switch). Log: a2-go124-directive.log
+Root cause shared with #494: rules keyed to absolute source paths captured BEFORE syncDeps/tidy changes module/toolchain resolution.

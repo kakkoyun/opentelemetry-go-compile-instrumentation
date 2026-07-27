@@ -1,0 +1,9 @@
+REPRO 3: shared user GOCACHE — otelc build then plain go build, same cache
+$ GOCACHE=shared otelc go build -o app-inst .   # succeeds
+$ GOCACHE=shared go build -o app-plain .        # plain build, FAILS:
+# example.com/harness3
+net/http.OtelBeforeTrampoline_RoundTrip3038199408: relocation target go.opentelemetry.io/otelc/instrumentation/net/http/client.BeforeRoundTrip not defined
+net/http.OtelAfterTrampoline_RoundTrip3038199408: relocation target go.opentelemetry.io/otelc/instrumentation/net/http/client.AfterRoundTrip not defined
+net/http.OtelBeforeTrampoline_ServeHTTP4219161129: relocation target go.opentelemetry.io/otelc/instrumentation/net/http/server.BeforeServeHTTP not defined
+net/http.OtelAfterTrampoline_ServeHTTP4219161129: relocation target go.opentelemetry.io/otelc/instrumentation/net/http/server.AfterServeHTTP not defined
+log.OtelBeforeTrampoline_output3128077727: relocation target go.opentelemetry.io/otelc/instrumentation/log.BeforeLogOutput not defined
