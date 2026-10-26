@@ -1,0 +1,39 @@
+go: found go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init in go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/google.golang.org/grpc/client in go.opentelemetry.io/otelc/instrumentation/google.golang.org/grpc/client v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/google.golang.org/grpc/server in go.opentelemetry.io/otelc/instrumentation/google.golang.org/grpc/server v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/log in go.opentelemetry.io/otelc/instrumentation/log v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/client in go.opentelemetry.io/otelc/instrumentation/net/http/client v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/server in go.opentelemetry.io/otelc/instrumentation/net/http/server v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/runtime in go.opentelemetry.io/otelc/instrumentation/runtime v0.0.0-00010101000000-000000000000
+Bumped dependency google.golang.org/grpc (v1.70.0 -> v1.82.0)
+WORK=/tmp/go-build1855375294
+# google.golang.org/grpc
+Error:
+[0] cannot replace /root/go/pkg/mod/google.golang.org/grpc@v1.70.0/clientconn.go with $WORK/b317/clientconn.go during [/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.0.linux-amd64/pkg/tool/linux_amd64/compile -o $WORK/b317/_pkg_.a -trimpath $WORK/b317=> -p google.golang.org/grpc -lang=go1.25 -complete -buildid EkXr6CwKfGm9ZCuIL-PU/EkXr6CwKfGm9ZCuIL-PU -goversion go1.25.0 -c=4 -nolocalimports -importcfg $WORK/b317/importcfg -pack /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/backoff.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/balancer_wrapper.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/call.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/clientconn.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/codec.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/dialoptions.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/doc.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/interceptor.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/picker_wrapper.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/preloader.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/resolver_wrapper.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/rpc_util.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/server.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/service_config.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/stream.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/stream_interfaces.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/trace.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/trace_withtrace.go /root/go/pkg/mod/google.golang.org/grpc@v1.82.0/version.go]
+[1] writing instrumented file /root/go/pkg/mod/google.golang.org/grpc@v1.70.0/clientconn.go
+[2] instrumenting package google.golang.org/grpc
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/internal/instrument/apply_func.go:329 tool/internal/instrument.(*InstrumentPhase).writeInstrumented
+[1] go.opentelemetry.io/otelc/tool/internal/instrument/instrument.go:99 tool/internal/instrument.(*InstrumentPhase).instrument
+[2] go.opentelemetry.io/otelc/tool/internal/instrument/toolexec.go:125 tool/internal/instrument.interceptCompile
+[3] go.opentelemetry.io/otelc/tool/internal/instrument/toolexec.go:362 tool/internal/instrument.Toolexec
+[4] go.opentelemetry.io/otelc/tool/cmd/otelc/cmd_toolexec.go:22 main.init.func2
+[5] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[6] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[7] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[8] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[9] runtime/proc.go:285 runtime.main
+Error:
+[0] failed to run command "go" in dir '""' with args: [build -work -toolexec=/home/user/opentelemetry-go-compile-instrumentation/otelc toolexec -o grpcapp .]: exit status 1
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/util/sys.go:37 tool/util.runCmd
+[1] go.opentelemetry.io/otelc/tool/util/sys.go:44 tool/util.RunCmdWithEnv
+[2] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:525 tool/internal/setup.BuildWithToolexec
+[3] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:569 tool/internal/setup.GoBuild
+[4] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[5] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[6] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[7] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[8] runtime/proc.go:285 runtime.main

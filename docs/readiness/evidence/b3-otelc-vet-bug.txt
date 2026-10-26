@@ -1,0 +1,1 @@
+NOTE: 'otelc go test' fails by default: generated otelc.runtime.go trips go vet (non-constant format string in log.Printf, otelc.runtime.go:17,23,29). Requires -vet=off.

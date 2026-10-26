@@ -1,0 +1,23 @@
+rule dir                                         version: ranges          hook go.mod requires target lib at
+basic                                            v0.11.0,v0.14.0,v0.15.0,v0.15.0 -
+database/sql                                     NONE                     -
+github.com/gin-gonic/gin                         NONE                     github.com/gin-gonic/gin@v1.12.0
+github.com/openai/openai-go                      NONE                     github.com/openai/openai-go@v1.12.0
+github.com/openai/openai-go/v2                   NONE                     github.com/openai/openai-go/v2@v2.7.1
+github.com/openai/openai-go/v3                   NONE                     github.com/openai/openai-go/v3@v3.41.0
+github.com/redis/go-redis/v9                     NONE                     github.com/redis/go-redis/v9@v9.21.0
+github.com/segmentio/kafka-go                    NONE                     github.com/segmentio/kafka-go@v0.4.51
+github.com/sirupsen/logrus                       v1.4.2                   github.com/sirupsen/logrus@v1.9.4
+go.mongodb.org/mongo-driver/mongo                NONE                     go.mongodb.org/mongo-driver@v1.17.9
+go.opentelemetry.io/otel                         NONE                     go.opentelemetry.io/otel@v1.44.0
+go.opentelemetry.io/otel/init                    NONE                     -
+go.opentelemetry.io/otel/sdk/trace               v1.44.0                  go.opentelemetry.io/otel@v1.44.0
+go.opentelemetry.io/otel/trace                   NONE                     go.opentelemetry.io/otel/trace@v1.44.0
+google.golang.org/grpc/client                    NONE                     google.golang.org/grpc@v1.82.0
+google.golang.org/grpc/server                    NONE                     google.golang.org/grpc@v1.82.0
+k8s.io/client-go                                 v0.34.0,v0.36.0,v0.35.0,v0.36.0 k8s.io/client-go@v0.34.0
+log                                              NONE                     -
+log/slog                                         NONE                     -
+net/http/client                                  NONE                     -
+net/http/server                                  NONE                     -
+runtime                                          NONE                     -

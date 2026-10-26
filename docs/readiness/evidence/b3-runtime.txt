@@ -1,0 +1,9 @@
+round1 plain: goroutine 3000000 iters 486.4 ns/op | http 15000 iters 88692 ns/op
+round1 otelc: goroutine 3000000 iters 489.6 ns/op | http 15000 iters 114494 ns/op
+round1 orch: goroutine 3000000 iters 475.4 ns/op | http 15000 iters 108990 ns/op
+round2 plain: goroutine 3000000 iters 490.1 ns/op | http 15000 iters 86986 ns/op
+round2 otelc: goroutine 3000000 iters 494.3 ns/op | http 15000 iters 116434 ns/op
+round2 orch: goroutine 3000000 iters 486.8 ns/op | http 15000 iters 94572 ns/op
+round3 plain: goroutine 3000000 iters 469.4 ns/op | http 15000 iters 81477 ns/op
+round3 otelc: goroutine 3000000 iters 468.5 ns/op | http 15000 iters 95700 ns/op
+round3 orch: goroutine 3000000 iters 461.1 ns/op | http 15000 iters 100471 ns/op

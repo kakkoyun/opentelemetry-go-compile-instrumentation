@@ -1,0 +1,5 @@
+A5 SUMMARY: SDK/telemetry default behavior of instrumented binaries
+1. OTEL_SDK_DISABLED=true NOT honored: SDK + hooks initialize anyway (spec violation).
+2. Metrics: exported unconditionally; with default env an app dials 127.0.0.1:4318 (4 connections observed with OTEL_METRIC_EXPORT_INTERVAL=2000 over 8s lifetime). Runtime metrics enabled for every binary.
+3. Traces: SILENTLY DISABLED unless OTEL_EXPORTER_OTLP_ENDPOINT or OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is set (pkg/runtime/setup.go:137-146). OTEL_TRACES_EXPORTER=console alone emits nothing, contradicting pkg/runtime/otel_setup.go:26 docs and OTel spec default-endpoint semantics. With endpoint set: spans GET/GET emitted correctly.
+4. Asymmetry: metrics phone home by default; traces need explicit opt-in env. Neither matches the other or the spec.

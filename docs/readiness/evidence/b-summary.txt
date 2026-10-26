@@ -1,0 +1,16 @@
+PHASE B SUMMARY (4-core linux container, go1.25.0, otelc@73f867f, orchestrion v1.11.0 + dd-trace-go v2.9.1 net/http contrib; N in files)
+
+Build time, small net/http app:
+  cold:  plain 10.6-10.8s | otelc 25.9-26.2s (~2.4x) | orchestrion 23.4s (~2.2x, excluding download-tainted first run 56s)
+  warm (touch main.go): plain ~0.09s | otelc 1.3-2.6s (median ~2.3s) | orchestrion ~2.8s
+  -> otelc warm builds slightly FASTER than orchestrion; both pay ~2.3-2.8s fixed cost per rebuild
+  -> otelc's fixed cost is its per-build setup phase (go build -a -x -n dry run + extract + go mod tidy)
+
+Binary size: plain 8.9MB | otelc 25.2MB (2.8x) | orchestrion 23.7MB (2.7x)
+  (otelc always links SDK + all OTLP/prometheus/stdout exporters via autoexport)
+
+Runtime (noop pipelines: otelc no OTLP endpoint; orchestrion DD_TRACE_ENABLED=false), min of 3 rounds:
+  goroutine spawn: plain 469 | otelc 468 | orch 461 ns/op -> GLS newproc1 hook cost not measurable
+  HTTP roundtrip:  plain 81.5us | otelc 95.7us (+17%) | orch 94.6us (+16%) -> parity, within noise
+
+Caveats: shared container (noisy neighbors); different SDK semantics in noop mode; single small app.

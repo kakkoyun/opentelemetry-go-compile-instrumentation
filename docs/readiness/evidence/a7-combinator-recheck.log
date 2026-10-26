@@ -1,0 +1,19 @@
+Error:
+[0] rule "combinator_rule" has no recognised selector
+[1] matching dependencies to hook rules
+
+Stack:
+[0] tool/internal/setup/match.go:54 tool/internal/setup.createRuleFromFields
+[1] tool/internal/setup/match.go:76 tool/internal/setup.parseRuleFromYaml
+[2] tool/internal/setup/match.go:456 tool/internal/setup.loadCustomRules-range1
+[3] GOMODCACHE/golang.org/toolchain@v0.0.1-go1.25.0.linux-amd64/src/strings/iter.go:59 tool/internal/setup.loadCustomRules.SplitSeq.splitSeq.func2
+[4] tool/internal/setup/match.go:431 tool/internal/setup.loadCustomRules
+[5] tool/internal/setup/match.go:509 tool/internal/setup.(*SetupPhase).loadRules
+[6] tool/internal/setup/match.go:539 tool/internal/setup.(*SetupPhase).matchDeps
+[7] tool/internal/setup/setup.go:375 tool/internal/setup.Setup
+[8] tool/internal/setup/setup.go:591 tool/internal/setup.GoBuild
+[9] GOMODCACHE/github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[10] GOMODCACHE/github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[11] GOMODCACHE/github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[12] tool/cmd/otelc/main.go:104 main.main
+[13] GOMODCACHE/golang.org/toolchain@v0.0.1-go1.25.0.linux-amd64/src/runtime/proc.go:285 runtime.main

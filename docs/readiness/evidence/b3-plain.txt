@@ -1,0 +1,6 @@
+BenchmarkGoroutineSpawn-4   	 2614093	       471.8 ns/op
+BenchmarkGoroutineSpawn-4   	 2531770	       471.1 ns/op
+BenchmarkGoroutineSpawn-4   	 2542843	       470.3 ns/op
+BenchmarkHTTPRoundTrip-4    	   13564	     91101 ns/op
+BenchmarkHTTPRoundTrip-4    	   14101	     78384 ns/op
+BenchmarkHTTPRoundTrip-4    	   15487	     79092 ns/op

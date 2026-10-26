@@ -1,0 +1,16 @@
+== app-v1 (zero rules, cold) trampoline symbols:
+  5275a0 t crosscall2_trampoline
+== app-v2 (default rules, warm uninstrumented cache) trampoline symbols:
+  5942e0 t crosscall2_trampoline
+== correct default-rules cold build (app/) had:
+  594560 t crosscall2_trampoline
+  66a5c0 T log.OtelBeforeTrampoline_output3128077727
+  66a7e0 T log.OtelBeforeTrampoline_output3128077727.func1
+  6e1720 T net/http.OtelAfterTrampoline_RoundTrip3038199408
+  70cb00 T net/http.OtelAfterTrampoline_RoundTrip3038199408.func1
+  6f4d60 T net/http.OtelAfterTrampoline_ServeHTTP4219161129
+  70c8c0 T net/http.OtelAfterTrampoline_ServeHTTP4219161129.func1
+  6e1560 T net/http.OtelBeforeTrampoline_RoundTrip3038199408
+  70cc20 T net/http.OtelBeforeTrampoline_RoundTrip3038199408.func1
+  6f4b60 T net/http.OtelBeforeTrampoline_ServeHTTP4219161129
+  70c9e0 T net/http.OtelBeforeTrampoline_ServeHTTP4219161129.func1

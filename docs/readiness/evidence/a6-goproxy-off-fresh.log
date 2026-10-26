@@ -1,0 +1,91 @@
+go: found go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init in go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/log in go.opentelemetry.io/otelc/instrumentation/log v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/client in go.opentelemetry.io/otelc/instrumentation/net/http/client v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/net/http/server in go.opentelemetry.io/otelc/instrumentation/net/http/server v0.0.0-00010101000000-000000000000
+go: found go.opentelemetry.io/otelc/instrumentation/runtime in go.opentelemetry.io/otelc/instrumentation/runtime v0.0.0-00010101000000-000000000000
+go: downloading go.opentelemetry.io/otel v1.44.0
+go: downloading go.opentelemetry.io/otel/trace v1.44.0
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading go.opentelemetry.io/otel/sdk v1.44.0
+go: downloading go.opentelemetry.io/otel/metric v1.44.0
+go: downloading go.opentelemetry.io/contrib/exporters/autoexport v0.69.0
+go: downloading go.opentelemetry.io/contrib/instrumentation/runtime v0.69.0
+go: downloading go.opentelemetry.io/otel/sdk/metric v1.44.0
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otel: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otel/codes: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otel/propagation: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otel/trace: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init imports
+	go.opentelemetry.io/otelc/pkg/runtime imports
+	go.opentelemetry.io/contrib/exporters/autoexport: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init imports
+	go.opentelemetry.io/otelc/pkg/runtime imports
+	go.opentelemetry.io/contrib/instrumentation/runtime: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init imports
+	go.opentelemetry.io/otelc/pkg/runtime imports
+	go.opentelemetry.io/otel/sdk/metric: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init imports
+	go.opentelemetry.io/otelc/pkg/runtime imports
+	go.opentelemetry.io/otel/sdk/resource: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/go.opentelemetry.io/otel/init imports
+	go.opentelemetry.io/otelc/pkg/runtime imports
+	go.opentelemetry.io/otel/sdk/trace: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/log tested by
+	go.opentelemetry.io/otelc/instrumentation/log.test imports
+	github.com/stretchr/testify/assert: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/semconv imports
+	go.opentelemetry.io/otel/attribute: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/semconv imports
+	go.opentelemetry.io/otel/metric: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/semconv imports
+	go.opentelemetry.io/otel/semconv/v1.37.0: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client tested by
+	go.opentelemetry.io/otelc/instrumentation/net/http/client.test imports
+	github.com/stretchr/testify/require: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client tested by
+	go.opentelemetry.io/otelc/instrumentation/net/http/client.test imports
+	go.opentelemetry.io/otel/sdk/trace/tracetest: module lookup disabled by GOPROXY=off
+go: example.com/app8 imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/client imports
+	go.opentelemetry.io/otelc/instrumentation/net/http/semconv tested by
+	go.opentelemetry.io/otelc/instrumentation/net/http/semconv.test imports
+	go.opentelemetry.io/otel/metric/noop: module lookup disabled by GOPROXY=off
+Error:
+[0] failed to run command "go" in dir '"/tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app8"' with args: [mod tidy]: exit status 1
+[1] running go mod tidy in /tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app8
+[2] syncing deps in module dir /tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app8
+
+Stack:
+[0] go.opentelemetry.io/otelc/tool/util/sys.go:37 tool/util.runCmd
+[1] go.opentelemetry.io/otelc/tool/util/sys.go:54 tool/util.RunCmdInDir
+[2] go.opentelemetry.io/otelc/tool/internal/setup/sync.go:47 tool/internal/setup.runModTidy
+[3] go.opentelemetry.io/otelc/tool/internal/setup/sync.go:192 tool/internal/setup.(*SetupPhase).syncDeps
+[4] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:350 tool/internal/setup.Setup
+[5] go.opentelemetry.io/otelc/tool/internal/setup/setup.go:559 tool/internal/setup.GoBuild
+[6] github.com/urfave/cli/v3@v3.10.1/command_run.go:382 github.com/urfave/cli/v3.(*Command).run
+[7] github.com/urfave/cli/v3@v3.10.1/command_run.go:320 github.com/urfave/cli/v3.(*Command).run
+[8] github.com/urfave/cli/v3@v3.10.1/command_run.go:95 github.com/urfave/cli/v3.(*Command).Run
+[9] go.opentelemetry.io/otelc/tool/cmd/otelc/main.go:103 main.main
+[10] runtime/proc.go:285 runtime.main

@@ -1,0 +1,12 @@
+A4 SUMMARY: two concurrent 'otelc go build' in one module
+build A exit 1, build B exit 0; after both complete: go.mod retains 8 replace directives + go.sum orphaned (build B snapshotted A's mutated go.mod, restore baked it in)
+--- buildA error excerpt:
+./otelc.runtime.go:11:10: could not import go.opentelemetry.io/otelc/instrumentation/log/slog (open : no such file or directory)
+Error:
+[0] failed to run command "/root/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.0.linux-amd64/pkg/tool/linux_amd64/compile" in dir '""' with args: [-o $WORK/b001/_pkg_.a -trimpath $WORK/b001=> -p main -lang=go1.25 -buildid KbcdOf0kA6q_BPgLi2--/KbcdOf0kA6q_BPgLi2-- -goversion go1.25.0 -c=4 -nolocalimports -importcfg $WORK/b001/importcfg -pack ./main.go ./otelc.runtime.go $WORK/b001/otelc.init_otelsdk.go]: exit status 2
+
+Stack:
+--- final go.mod replaces:
+replace go.opentelemetry.io/otelc/instrumentation => /tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app5/.otelc-build/instrumentation
+replace go.opentelemetry.io/otelc/instrumentation/log => /tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app5/.otelc-build/instrumentation/log
+replace go.opentelemetry.io/otelc/instrumentation/net/http/client => /tmp/claude-0/-home-user-opentelemetry-go-compile-instrumentation/f8415f87-06db-54ac-b59d-5b86b28ac87d/scratchpad/harness/app5/.otelc-build/instrumentation/net/http/client
