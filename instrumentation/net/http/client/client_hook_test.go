@@ -25,6 +25,7 @@ import (
 
 	"go.opentelemetry.io/otelc/pkg/hook"
 	"go.opentelemetry.io/otelc/pkg/hook/hooktest"
+	"go.opentelemetry.io/otelc/pkg/runtime"
 )
 
 func setupTestTracer(t *testing.T) (*tracetest.SpanRecorder, *sdktrace.TracerProvider) {
@@ -608,4 +609,130 @@ func TestBeforeRoundTrip_SharedHeaderMapIsNotWritten(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, http.Header{"X-Shared": {"1"}}, shared)
+}
+
+// When otelhttp.NewTransport wraps (*http.Transport), otelhttp starts its own
+// client span and puts it on the request context before the base transport
+// runs. otelc must step aside for that request: one outbound call, one span.
+// Every other context shape keeps today's behavior.
+func TestBeforeRoundTripStepsAsideForOtelHTTPClientSpan(t *testing.T) {
+	tests := []struct {
+		name       string
+		scope      string
+		kind       trace.SpanKind
+		record     bool
+		ended      bool
+		suppressed bool
+		wantSpan   bool
+	}{
+		{
+			name:     "otelhttp client span on context skips otelc span",
+			scope:    otelhttpScopeName,
+			kind:     trace.SpanKindClient,
+			record:   true,
+			wantSpan: false,
+		},
+		{
+			name:     "client span from another scope creates otelc span",
+			scope:    "example.com/app",
+			kind:     trace.SpanKindClient,
+			record:   true,
+			wantSpan: true,
+		},
+		{
+			name:     "otelhttp server span on context creates otelc span",
+			scope:    otelhttpScopeName,
+			kind:     trace.SpanKindServer,
+			record:   true,
+			wantSpan: true,
+		},
+		{
+			name:     "non-recording span on context creates otelc span",
+			scope:    otelhttpScopeName,
+			kind:     trace.SpanKindClient,
+			record:   false,
+			wantSpan: true,
+		},
+		{
+			name:     "ended otelhttp client span creates otelc span",
+			scope:    otelhttpScopeName,
+			kind:     trace.SpanKindClient,
+			record:   true,
+			ended:    true,
+			wantSpan: true,
+		},
+		{
+			name:       "suppression flag still suppresses",
+			suppressed: true,
+			wantSpan:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initOnce = sync.Once{}
+			t.Setenv("OTEL_GO_ENABLED_INSTRUMENTATIONS", "nethttp")
+
+			var sr *tracetest.SpanRecorder
+			var tp *sdktrace.TracerProvider
+			if tt.record {
+				sr, tp = setupTestTracer(t)
+			} else {
+				tp = sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
+				otel.SetTracerProvider(tp)
+				t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+			}
+
+			ctx := context.Background()
+			var parent trace.Span
+			if tt.suppressed {
+				ctx = runtime.SuppressHTTPClientInstrumentation(ctx)
+			} else {
+				// Put a span on the context the way otelhttp or app code would.
+				ctx, parent = tp.Tracer(tt.scope).Start(ctx, "upstream",
+					trace.WithSpanKind(tt.kind))
+				if tt.ended {
+					parent.End()
+				} else {
+					defer parent.End()
+				}
+			}
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://example.com/path", nil)
+			require.NoError(t, err)
+			req.Header.Set("X-Custom", "keep")
+
+			mockCtx := hooktest.NewMockHookContext()
+			BeforeRoundTrip(mockCtx, &http.Transport{}, req)
+
+			if tt.wantSpan {
+				data, ok := mockCtx.GetData().(*hookData)
+				require.True(t, ok, "hook data should be stored")
+				require.NotNil(t, data.span, "otelc span should be created")
+				newReq, ok := mockCtx.GetParam(1).(*http.Request)
+				require.True(t, ok, "param 1 should be the request handed to RoundTrip")
+				assert.Equal(t, "keep", newReq.Header.Get("X-Custom"))
+				if tt.record {
+					assert.NotEmpty(t, newReq.Header.Get("Traceparent"),
+						"otelc must inject trace headers into the outgoing request")
+					// The otelc span stays a child of the span on the context.
+					ro, isSDK := data.span.(sdktrace.ReadOnlySpan)
+					require.True(t, isSDK, "otelc span must be an SDK recording span")
+					assert.Equal(t, parent.SpanContext().SpanID(), ro.Parent().SpanID(),
+						"otelc span must be a child of the span on the context")
+				}
+				return
+			}
+
+			// otelc steps aside: no span, no header injection, no replaced request.
+			assert.Nil(t, mockCtx.GetData(), "no hook data should be stored")
+			assert.Nil(t, mockCtx.GetParam(1), "request should not be replaced")
+
+			// The after hook must handle the skipped request without data.
+			AfterRoundTrip(mockCtx, nil, nil)
+			if sr != nil {
+				assert.Empty(t, sr.Ended(), "no span should be ended for the skipped request")
+			}
+		})
+	}
 }

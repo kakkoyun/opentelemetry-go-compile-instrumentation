@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
 	"go.opentelemetry.io/otelc/instrumentation/net/http/semconv"
@@ -26,6 +27,11 @@ const (
 	instrumentationName = "go.opentelemetry.io/otelc/instrumentation/net/http"
 	instrumentationKey  = "NETHTTP"
 	requestParamIndex   = 1
+
+	// otelhttpScopeName is the instrumentation scope of the otelhttp
+	// transport wrapper. When otelhttp wraps (*http.Transport), it starts
+	// its own client span and injects headers before the base transport runs.
+	otelhttpScopeName = "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var (
@@ -70,6 +76,19 @@ type hookData struct {
 	start time.Time
 }
 
+// hasOtelHTTPClientSpan reports whether ctx carries a live client span that
+// otelhttp started. It reads the span through sdktrace.ReadOnlySpan, so the
+// hook does not import otelhttp.
+func hasOtelHTTPClientSpan(ctx context.Context) bool {
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() {
+		return false
+	}
+	ro, ok := span.(sdktrace.ReadOnlySpan)
+	return ok && ro.SpanKind() == trace.SpanKindClient &&
+		ro.InstrumentationScope().Name == otelhttpScopeName
+}
+
 func BeforeRoundTrip(ictx hook.HookContext, transport *http.Transport, req *http.Request) {
 	// This runs once per outbound request; keep the disabled path free of logging.
 	if !clientEnabler.Enable() {
@@ -91,6 +110,13 @@ func BeforeRoundTrip(ictx hook.HookContext, transport *http.Transport, req *http
 		if debugEnabled() {
 			logger.Debug("Skipping OTel exporter request", "user_agent", ua)
 		}
+		return
+	}
+
+	// The request is already instrumented by otelhttp. Step aside: otelhttp
+	// owns the client span, the header injection, and the metrics for this
+	// call. AfterRoundTrip finds no hook data and returns without a span.
+	if hasOtelHTTPClientSpan(req.Context()) {
 		return
 	}
 
